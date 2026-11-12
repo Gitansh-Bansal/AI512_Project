@@ -1,0 +1,10 @@
+Data/
+output/
+**/__pycache__/
+*.pyc
+*.pt
+*.gif
+*.mp4
+PIDNet/data/camvid/
+TwinLiteNetPlus/data/bdd100k/
+.ipynb_checkpoints/

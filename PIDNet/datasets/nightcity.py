@@ -120,6 +120,11 @@ class NightCity(BaseDataset):
         
         img_full_path = os.path.join(self.root, item["img"])
         if not os.path.exists(img_full_path):
+            if "NightCity-images/NightCity-images" in item["img"]:
+                single_nested = item["img"].replace("NightCity-images/NightCity-images", "NightCity-images")
+                if os.path.exists(os.path.join(self.root, single_nested)):
+                    img_full_path = os.path.join(self.root, single_nested)
+        if not os.path.exists(img_full_path):
             # check relative to repo
             alt = os.path.join('AI512_Project', 'Data', item["img"])
             if os.path.exists(alt):
@@ -138,6 +143,11 @@ class NightCity(BaseDataset):
             return image.copy(), np.array(size), name
 
         lbl_full_path = os.path.join(self.root, item["label"])
+        if not os.path.exists(lbl_full_path):
+            if "NightCity-label/NightCity-label" in item["label"]:
+                single_nested = item["label"].replace("NightCity-label/NightCity-label", "NightCity-label")
+                if os.path.exists(os.path.join(self.root, single_nested)):
+                    lbl_full_path = os.path.join(self.root, single_nested)
         if not os.path.exists(lbl_full_path):
             alt = os.path.join('AI512_Project', 'Data', item["label"])
             if os.path.exists(alt):

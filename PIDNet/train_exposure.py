@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np
+import cv2
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
@@ -76,26 +77,34 @@ def adjust_learning_rate(optimizer, base_lr, current_iter, max_iters, power=0.9)
     return lr
 
 
-def train_epoch(wrapper, train_loader, optimizer, device, epoch, max_epochs, base_lr, global_iter, max_iters):
+def train_epoch(wrapper, train_loader, optimizer, device, epoch, max_epochs, base_lr, global_iter, max_iters, scaler=None):
     wrapper.train()
     total_loss_accum = 0.0
     sem_loss_accum = 0.0
     bd_loss_accum = 0.0
     num_batches = len(train_loader)
+    use_amp = (scaler is not None and device.type == 'cuda')
 
     pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{max_epochs} [Train NightOpt]", leave=False)
     for batch_idx, (images, labels, bd_gts, _, _) in enumerate(pbar):
         current_iter = epoch * num_batches + batch_idx
         lr = adjust_learning_rate(optimizer, base_lr, current_iter, max_iters)
 
-        images = images.to(device)
-        labels = labels.long().to(device)
-        bd_gts = bd_gts.float().to(device)
+        images = images.to(device, non_blocking=True)
+        labels = labels.long().to(device, non_blocking=True)
+        bd_gts = bd_gts.float().to(device, non_blocking=True)
 
-        optimizer.zero_grad()
-        loss, loss_sem, loss_bd, _ = wrapper(images, labels, bd_gts)
-        loss.backward()
-        optimizer.step()
+        optimizer.zero_grad(set_to_none=True)
+        with torch.cuda.amp.autocast(enabled=use_amp):
+            loss, loss_sem, loss_bd, _ = wrapper(images, labels, bd_gts)
+
+        if use_amp:
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss.backward()
+            optimizer.step()
 
         total_loss_accum += loss.item()
         sem_loss_accum += loss_sem.item()
@@ -118,16 +127,18 @@ def validate_model(model, val_loader, device, num_samples=None):
     model.eval()
     metric_engine = SegmentationMetrics(num_classes=19, ignore_label=255, class_names=CITYSCAPES_CLASSES)
     eval_count = 0
+    use_amp = (device.type == 'cuda')
 
     with torch.no_grad():
         for images, labels, _, _, _ in tqdm(val_loader, desc="Validating", leave=False):
-            images = images.to(device)
-            preds = model(images)
-            if isinstance(preds, list):
-                preds = preds[1]
+            images = images.to(device, non_blocking=True)
+            with torch.cuda.amp.autocast(enabled=use_amp):
+                preds = model(images)
+                if isinstance(preds, list):
+                    preds = preds[1]
 
-            if preds.shape[-2:] != labels.shape[-2:]:
-                preds = F.interpolate(preds, size=labels.shape[-2:], mode='bilinear', align_corners=False)
+                if preds.shape[-2:] != labels.shape[-2:]:
+                    preds = F.interpolate(preds, size=labels.shape[-2:], mode='bilinear', align_corners=False)
 
             pred_classes = torch.argmax(preds, dim=1).cpu().numpy()
             targets = labels.numpy()
@@ -232,10 +243,33 @@ def run_training_exposure(
 
     if num_train_samples and num_train_samples < len(train_dataset):
         train_dataset.files = train_dataset.files[:num_train_samples]
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
-    val_loader = DataLoader(val_dataset, batch_size=2, shuffle=False)
 
-    print(f"[INFO] Train Samples: {len(train_dataset):,} | Val Samples: {len(val_dataset):,}")
+    if torch.cuda.is_available():
+        torch.backends.cudnn.benchmark = True
+    cv2.setNumThreads(0)
+
+    num_workers = min(4, os.cpu_count() or 2) if device.type == 'cuda' else 0
+    pin_memory = (device.type == 'cuda')
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        drop_last=True,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        persistent_workers=(num_workers > 0),
+        prefetch_factor=2 if num_workers > 0 else None
+    )
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=4 if device.type == 'cuda' else 2,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin_memory
+    )
+
+    print(f"[INFO] Train Samples: {len(train_dataset):,} | Val Samples: {len(val_dataset):,} | Workers: {num_workers} | PinMem: {pin_memory}")
 
     # Model: PIDNetNightOpt (Wavelet + IACC)
     model = PIDNetNightOpt(m=2, n=3, num_classes=19, planes=32, ppm_planes=96, head_planes=128, augment=True)
@@ -253,6 +287,7 @@ def run_training_exposure(
     )
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=base_lr, weight_decay=1e-4)
+    scaler = torch.cuda.amp.GradScaler(enabled=(device.type == 'cuda'))
     max_iters = epochs * len(train_loader)
 
     history = []
@@ -263,7 +298,8 @@ def run_training_exposure(
     for epoch in range(epochs):
         t0 = time.time()
         loss_total, loss_sem, loss_bd = train_epoch(
-            wrapper, train_loader, optimizer, device, epoch, epochs, base_lr, epoch * len(train_loader), max_iters
+            wrapper, train_loader, optimizer, device, epoch, epochs, base_lr,
+            epoch * len(train_loader), max_iters, scaler=scaler
         )
         elapsed = time.time() - t0
         print(f"[Epoch {epoch+1}/{epochs}] Loss: {loss_total:.4f} (Sem: {loss_sem:.4f}, BD: {loss_bd:.4f}) | Time: {elapsed:.1f}s")

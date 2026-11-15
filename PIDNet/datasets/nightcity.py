@@ -24,7 +24,8 @@ class NightCity(BaseDataset):
                  scale_factor=16,
                  mean=[0.485, 0.456, 0.406], 
                  std=[0.229, 0.224, 0.225],
-                 bd_dilate_size=4):
+                 bd_dilate_size=4,
+                 photo_aug=None):
 
         super(NightCity, self).__init__(ignore_label, base_size,
                 crop_size, scale_factor, mean, std,)
@@ -32,6 +33,7 @@ class NightCity(BaseDataset):
         self.root = root
         self.list_path = list_path
         self.num_classes = num_classes
+        self.photo_aug = photo_aug
 
         self.multi_scale = multi_scale
         self.flip = flip
@@ -136,6 +138,9 @@ class NightCity(BaseDataset):
         if image is None:
             raise ValueError(f"Failed to read image at {img_full_path}")
         size = image.shape
+
+        if self.photo_aug is not None:
+            image = self.photo_aug(image)
 
         if 'test' in self.list_path:
             image = self.input_transform(image)

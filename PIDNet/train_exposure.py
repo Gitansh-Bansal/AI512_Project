@@ -1,9 +1,9 @@
 # ------------------------------------------------------------------------------
-# Task 6: PIDNet-S Exposure-Aware Training Engine (Option 1)
-# Integrates:
-#   1. Night-specific Photometric Augmentations (Gamma, Noise, Specular Bloom)
-#   2. Exposure-Aware OHEM Cross-Entropy Loss (Upweighting dark and glare zones)
-#   3. Auxiliary Illumination Head (Self-supervised luminance bins, dropped at inference)
+# Task 6: PIDNet-NightOpt Training Engine (Optimized Exposure & Boundary Handling)
+# Combines:
+#   1. PIDNetNightOpt (Haar Wavelet DWT-RF Edge Prior + Illumination-Aware Channel Calibration IACC)
+#   2. Focal-OHEM Cross-Entropy with Label Smoothing (Stable gradients in shadows)
+#   3. CLAHE Contrast-Restoring Augmentations (Enhances faint curb & obstacle edges)
 # ------------------------------------------------------------------------------
 
 import os
@@ -25,59 +25,48 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from models.pidnet_exposure import PIDNetExposure
+from models.pidnet_nightopt import PIDNetNightOpt, get_nightopt_model
 from datasets.nightcity import NightCity
 from metrics import SegmentationMetrics, CITYSCAPES_CLASSES
 from utils.criterion import BondaryLoss
-from utils.night_augmentations import NightAugmentationPipeline
-from utils.exposure_loss import (
-    compute_illumination_bins,
-    ExposureAwareOhemCrossEntropy,
-)
+from utils.focal_ohem_loss import FocalOhemCrossEntropy
+from utils.night_clahe_aug import NightContrastAugmentationPipeline
 
 
-class FullExposureModelWrapper(nn.Module):
+class FullNightOptModelWrapper(nn.Module):
     """
-    Wraps PIDNetExposure with:
-      - Semantic Exposure-Aware OHEM Loss (Detail + Main heads)
-      - Boundary BCE Loss (Derivative head)
-      - Auxiliary Illumination Loss (Self-supervised luminance bins)
+    Wraps PIDNetNightOpt with:
+      - Focal-OHEM Semantic Loss (Detail + Main heads) with label smoothing
+      - Boundary BCE Loss (Derivative head enhanced with Haar Wavelets)
     """
     def __init__(
         self,
         model: nn.Module,
         sem_loss: nn.Module,
         bd_loss: nn.Module,
-        illum_loss: nn.Module,
-        bd_weight: float = 1.0,
-        illum_weight: float = 0.2
+        bd_weight: float = 1.0
     ):
-        super(FullExposureModelWrapper, self).__init__()
+        super(FullNightOptModelWrapper, self).__init__()
         self.model = model
         self.sem_loss = sem_loss
         self.bd_loss = bd_loss
-        self.illum_loss = illum_loss
         self.bd_weight = bd_weight
-        self.illum_weight = illum_weight
 
-    def forward(self, inputs, labels, bd_gt, illum_gt):
-        outputs = self.model(inputs)
-        # outputs is [x_extra_p, x_main, x_extra_d, illum_logits]
+    def forward(self, inputs: torch.Tensor, labels: torch.Tensor, bd_gt: torch.Tensor):
+        outputs = self.model(inputs)  # [x_extra_p, x_main, x_extra_d]
         h, w = labels.size(1), labels.size(2)
 
-        # Upsample all branch outputs to target resolution
         for i in range(len(outputs)):
             if outputs[i].size(2) != h or outputs[i].size(3) != w:
                 outputs[i] = F.interpolate(
                     outputs[i], size=(h, w), mode='bilinear', align_corners=False
                 )
 
-        loss_sem = self.sem_loss(outputs[:2], labels, inputs)
+        loss_sem = self.sem_loss(outputs[:2], labels)
         loss_bd = self.bd_loss(outputs[2], bd_gt).mean()
-        loss_illum = self.illum_loss(outputs[3], illum_gt)
 
-        total_loss = loss_sem + self.bd_weight * loss_bd + self.illum_weight * loss_illum
-        return total_loss, loss_sem, loss_bd, loss_illum, outputs[1]
+        total_loss = loss_sem + self.bd_weight * loss_bd
+        return total_loss, loss_sem, loss_bd, outputs[1]
 
 
 def adjust_learning_rate(optimizer, base_lr, current_iter, max_iters, power=0.9):
@@ -92,10 +81,9 @@ def train_epoch(wrapper, train_loader, optimizer, device, epoch, max_epochs, bas
     total_loss_accum = 0.0
     sem_loss_accum = 0.0
     bd_loss_accum = 0.0
-    illum_loss_accum = 0.0
     num_batches = len(train_loader)
 
-    pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{max_epochs} [Train Exposure]")
+    pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{max_epochs} [Train NightOpt]")
     for batch_idx, (images, labels, bd_gts, _, _) in enumerate(pbar):
         current_iter = epoch * num_batches + batch_idx
         lr = adjust_learning_rate(optimizer, base_lr, current_iter, max_iters)
@@ -103,31 +91,27 @@ def train_epoch(wrapper, train_loader, optimizer, device, epoch, max_epochs, bas
         images = images.to(device)
         labels = labels.long().to(device)
         bd_gts = bd_gts.float().to(device)
-        illum_gts = compute_illumination_bins(images).to(device)
 
         optimizer.zero_grad()
-        loss, loss_sem, loss_bd, loss_illum, _ = wrapper(images, labels, bd_gts, illum_gts)
+        loss, loss_sem, loss_bd, _ = wrapper(images, labels, bd_gts)
         loss.backward()
         optimizer.step()
 
         total_loss_accum += loss.item()
         sem_loss_accum += loss_sem.item()
         bd_loss_accum += loss_bd.item()
-        illum_loss_accum += loss_illum.item()
 
         pbar.set_postfix({
             'loss': f"{loss.item():.4f}",
             'sem': f"{loss_sem.item():.4f}",
             'bd': f"{loss_bd.item():.4f}",
-            'illum': f"{loss_illum.item():.4f}",
             'lr': f"{lr:.6f}"
         })
 
     avg_total = total_loss_accum / max(1, num_batches)
     avg_sem = sem_loss_accum / max(1, num_batches)
     avg_bd = bd_loss_accum / max(1, num_batches)
-    avg_illum = illum_loss_accum / max(1, num_batches)
-    return avg_total, avg_sem, avg_bd, avg_illum
+    return avg_total, avg_sem, avg_bd
 
 
 def validate_model(model, val_loader, device, num_samples=None):
@@ -165,15 +149,13 @@ def plot_exposure_training_history(history: List[Dict], save_path: Optional[str]
     total_losses = [h['train_loss_total'] for h in history]
     sem_losses = [h['train_loss_sem'] for h in history]
     bd_losses = [h['train_loss_bd'] for h in history]
-    illum_losses = [h.get('train_loss_illum', 0.0) for h in history]
     val_epochs = [h['epoch'] for h in history if 'val_mIoU' in h and h['val_mIoU'] is not None]
     val_mious = [h['val_mIoU'] * 100.0 for h in history if 'val_mIoU' in h and h['val_mIoU'] is not None]
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     axes[0].plot(epochs, total_losses, marker='o', color='#1f77b4', linewidth=2, label='Total Loss')
-    axes[0].plot(epochs, sem_losses, marker='s', linestyle='--', color='#2ca02c', linewidth=1.5, label='Exposure-OHEM Sem Loss')
-    axes[0].plot(epochs, bd_losses, marker='^', linestyle=':', color='#ff7f0e', linewidth=1.5, label='Boundary Loss')
-    axes[0].plot(epochs, illum_losses, marker='d', linestyle='-.', color='#9467bd', linewidth=1.5, label='Aux Illumination Loss')
+    axes[0].plot(epochs, sem_losses, marker='s', linestyle='--', color='#2ca02c', linewidth=1.5, label='Focal-OHEM Sem Loss')
+    axes[0].plot(epochs, bd_losses, marker='^', linestyle=':', color='#ff7f0e', linewidth=1.5, label='Wavelet-Boundary Loss')
     axes[0].set_title('Training Losses vs. Epoch', fontsize=12, fontweight='bold')
     axes[0].set_xlabel('Epoch', fontsize=10)
     axes[0].set_ylabel('Loss Value', fontsize=10)
@@ -207,10 +189,9 @@ def run_training_exposure(
     optimizer_name: str = "adamw",
     base_lr: float = 0.001,
     bd_weight: float = 1.0,
-    illum_weight: float = 0.2,
-    alpha_dark: float = 1.5,
-    beta_glare: float = 1.2,
-    use_night_aug: bool = True,
+    gamma: float = 1.5,
+    label_smoothing: float = 0.05,
+    use_clahe_aug: bool = True,
     crop_h: int = 512,
     crop_w: int = 512,
     val_freq: int = 2,
@@ -221,13 +202,13 @@ def run_training_exposure(
     os.makedirs(save_dir, exist_ok=True)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("=" * 70)
-    print("PIDNET-S EXPOSURE-AWARE TRAINING (OPTION 1)")
+    print("PIDNET-NIGHTOPT TRAINING (HAAR WAVELET DWT-RF + IACC + FOCAL-OHEM)")
     print("=" * 70)
     print(f"[INFO] Compute Device: {device}")
-    print(f"[INFO] Epochs: {epochs} | Batch Size: {batch_size} | LR: {base_lr} | BD Weight: {bd_weight} | Illum Weight: {illum_weight}")
-    print(f"[INFO] Exposure Penalties: alpha_dark={alpha_dark}, beta_glare={beta_glare} | Night Augmentations: {use_night_aug}")
+    print(f"[INFO] Epochs: {epochs} | Batch Size: {batch_size} | LR: {base_lr} | BD Weight: {bd_weight}")
+    print(f"[INFO] Focal gamma={gamma}, Label Smoothing={label_smoothing} | CLAHE Augmentations: {use_clahe_aug}")
 
-    photo_aug = NightAugmentationPipeline(p=0.8) if use_night_aug else None
+    photo_aug = NightContrastAugmentationPipeline(p=0.7) if use_clahe_aug else None
 
     # Datasets
     train_dataset = NightCity(
@@ -256,21 +237,19 @@ def run_training_exposure(
 
     print(f"[INFO] Train Samples: {len(train_dataset):,} | Val Samples: {len(val_dataset):,}")
 
-    # Model
-    model = PIDNetExposure(m=2, n=3, num_classes=19, planes=32, ppm_planes=96, head_planes=128, augment=True)
+    # Model: PIDNetNightOpt (Wavelet + IACC)
+    model = PIDNetNightOpt(m=2, n=3, num_classes=19, planes=32, ppm_planes=96, head_planes=128, augment=True)
     model.to(device)
 
     # Criterions
-    sem_criterion = ExposureAwareOhemCrossEntropy(
-        ignore_label=255, thres=0.9, min_kept=131072,
-        alpha_dark=alpha_dark, beta_glare=beta_glare
+    sem_criterion = FocalOhemCrossEntropy(
+        ignore_label=255, gamma=gamma, label_smoothing=label_smoothing,
+        thres=0.85, min_kept=131072
     )
     bd_criterion = BondaryLoss(coeff_bce=20.0)
-    illum_criterion = nn.CrossEntropyLoss()
 
-    wrapper = FullExposureModelWrapper(
-        model, sem_criterion, bd_criterion, illum_criterion,
-        bd_weight=bd_weight, illum_weight=illum_weight
+    wrapper = FullNightOptModelWrapper(
+        model, sem_criterion, bd_criterion, bd_weight=bd_weight
     )
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=base_lr, weight_decay=1e-4)
@@ -283,18 +262,17 @@ def run_training_exposure(
 
     for epoch in range(epochs):
         t0 = time.time()
-        loss_total, loss_sem, loss_bd, loss_illum = train_epoch(
+        loss_total, loss_sem, loss_bd = train_epoch(
             wrapper, train_loader, optimizer, device, epoch, epochs, base_lr, epoch * len(train_loader), max_iters
         )
         elapsed = time.time() - t0
-        print(f"[Epoch {epoch+1}/{epochs}] Loss: {loss_total:.4f} (Sem: {loss_sem:.4f}, BD: {loss_bd:.4f}, Illum: {loss_illum:.4f}) | Time: {elapsed:.1f}s")
+        print(f"[Epoch {epoch+1}/{epochs}] Loss: {loss_total:.4f} (Sem: {loss_sem:.4f}, BD: {loss_bd:.4f}) | Time: {elapsed:.1f}s")
 
         epoch_record = {
             'epoch': epoch + 1,
             'train_loss_total': float(loss_total),
             'train_loss_sem': float(loss_sem),
             'train_loss_bd': float(loss_bd),
-            'train_loss_illum': float(loss_illum),
             'time_sec': float(elapsed),
         }
 

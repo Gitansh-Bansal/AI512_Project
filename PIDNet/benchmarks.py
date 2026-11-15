@@ -140,6 +140,7 @@ def benchmark_inference_speed(
         'Warmup_Iterations': warmup_runs,
         'Timed_Iterations': timed_runs,
         'Mean_Latency_ms': mean_latency,
+        'mean_latency_ms': mean_latency,
         'Std_Latency_ms': std_latency,
         'Min_Latency_ms': min_latency,
         'Max_Latency_ms': max_latency,

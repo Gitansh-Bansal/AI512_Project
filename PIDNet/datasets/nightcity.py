@@ -127,12 +127,24 @@ class NightCity(BaseDataset):
                 if os.path.exists(os.path.join(self.root, single_nested)):
                     img_full_path = os.path.join(self.root, single_nested)
         if not os.path.exists(img_full_path):
+            if "images/" in item["img"]:
+                no_prefix = "images/" + item["img"].split("images/", 1)[-1]
+                if os.path.exists(os.path.join(self.root, no_prefix)):
+                    img_full_path = os.path.join(self.root, no_prefix)
+        if not os.path.exists(img_full_path):
+            for candidate_folder in [os.path.join(self.root, 'NightCity-images'), os.path.join(self.root, 'nightcity')]:
+                if os.path.exists(candidate_folder):
+                    sub = os.path.join(candidate_folder, "images", item["img"].split("images/", 1)[-1] if "images/" in item["img"] else item["img"])
+                    if os.path.exists(sub):
+                        img_full_path = sub
+                        break
+        if not os.path.exists(img_full_path):
             # check relative to repo
             alt = os.path.join('AI512_Project', 'Data', item["img"])
             if os.path.exists(alt):
                 img_full_path = alt
             else:
-                raise FileNotFoundError(f"Image not found: {img_full_path}")
+                raise FileNotFoundError(f"Image not found: {img_full_path} (root={self.root})")
 
         image = cv2.imread(img_full_path, cv2.IMREAD_COLOR)
         if image is None:
@@ -154,11 +166,23 @@ class NightCity(BaseDataset):
                 if os.path.exists(os.path.join(self.root, single_nested)):
                     lbl_full_path = os.path.join(self.root, single_nested)
         if not os.path.exists(lbl_full_path):
+            if "label/" in item["label"]:
+                no_prefix = "label/" + item["label"].split("label/", 1)[-1]
+                if os.path.exists(os.path.join(self.root, no_prefix)):
+                    lbl_full_path = os.path.join(self.root, no_prefix)
+        if not os.path.exists(lbl_full_path):
+            for candidate_folder in [os.path.join(self.root, 'NightCity-label'), os.path.join(self.root, 'nightcity')]:
+                if os.path.exists(candidate_folder):
+                    sub = os.path.join(candidate_folder, "label", item["label"].split("label/", 1)[-1] if "label/" in item["label"] else item["label"])
+                    if os.path.exists(sub):
+                        lbl_full_path = sub
+                        break
+        if not os.path.exists(lbl_full_path):
             alt = os.path.join('AI512_Project', 'Data', item["label"])
             if os.path.exists(alt):
                 lbl_full_path = alt
             else:
-                raise FileNotFoundError(f"Label not found: {lbl_full_path}")
+                raise FileNotFoundError(f"Label not found: {lbl_full_path} (root={self.root})")
 
         label = cv2.imread(lbl_full_path, cv2.IMREAD_GRAYSCALE)
         if label is None:

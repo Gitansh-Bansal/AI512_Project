@@ -83,7 +83,7 @@ def train_epoch(wrapper, train_loader, optimizer, device, epoch, max_epochs, bas
     bd_loss_accum = 0.0
     num_batches = len(train_loader)
 
-    pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{max_epochs} [Train NightOpt]")
+    pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{max_epochs} [Train NightOpt]", leave=False)
     for batch_idx, (images, labels, bd_gts, _, _) in enumerate(pbar):
         current_iter = epoch * num_batches + batch_idx
         lr = adjust_learning_rate(optimizer, base_lr, current_iter, max_iters)

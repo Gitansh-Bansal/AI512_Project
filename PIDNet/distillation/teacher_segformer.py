@@ -3,6 +3,7 @@
 # Encapsulates SegFormer-B2 as a frozen teacher for knowledge distillation into PIDNet-S
 # ------------------------------------------------------------------------------
 
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -13,11 +14,16 @@ class SegFormerTeacher(nn.Module):
     """
     Wraps SegFormer-B2 semantic segmentation model as a teacher.
     Extracts softened class probability distributions for dark-region knowledge transfer.
+    Supports loading an adapted/fine-tuned checkpoint on NightCity.
     """
-    def __init__(self, pretrained_model_name: str = "nvidia/segformer-b2-finetuned-cityscapes-1024-1024"):
+    def __init__(self, pretrained_model_name: str = "nvidia/segformer-b2-finetuned-cityscapes-1024-1024", weights_path: Optional[str] = None):
         super(SegFormerTeacher, self).__init__()
         from transformers import SegformerForSemanticSegmentation
         self.teacher = SegformerForSemanticSegmentation.from_pretrained(pretrained_model_name)
+        if weights_path and os.path.exists(weights_path):
+            state_dict = torch.load(weights_path, map_location="cpu")
+            self.teacher.load_state_dict(state_dict)
+            print(f"[INFO] Loaded adapted SegFormer teacher checkpoint from: {weights_path}")
         self.teacher.eval()
         for p in self.teacher.parameters():
             p.requires_grad = False
@@ -38,7 +44,7 @@ class SegFormerTeacher(nn.Module):
         return logits
 
 
-def get_segformer_teacher(device: torch.device) -> SegFormerTeacher:
-    teacher = SegFormerTeacher().to(device)
+def get_segformer_teacher(device: torch.device, weights_path: Optional[str] = None) -> SegFormerTeacher:
+    teacher = SegFormerTeacher(weights_path=weights_path).to(device)
     teacher.eval()
     return teacher

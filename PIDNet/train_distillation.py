@@ -176,6 +176,7 @@ def run_training_distillation(
     val_freq: int = 2,
     val_samples: Optional[int] = 10,
     num_train_samples: Optional[int] = None,
+    teacher_weights: Optional[str] = None,
     save_dir: str = "output/nightcity_pidnet_distilled"
 ):
     os.makedirs(save_dir, exist_ok=True)
@@ -239,8 +240,8 @@ def run_training_distillation(
     student = PIDNet(m=2, n=3, num_classes=19, planes=32, ppm_planes=96, head_planes=128, augment=True)
     student.to(device)
 
-    print("[INFO] Loading Teacher SegFormer-B2 (Cityscapes Pretrained)...")
-    teacher = get_segformer_teacher(device)
+    print("[INFO] Loading Teacher SegFormer-B2...")
+    teacher = get_segformer_teacher(device, weights_path=teacher_weights)
 
     # Losses
     sem_criterion = OhemCrossEntropy(ignore_label=255, thres=0.9, min_kept=131072)

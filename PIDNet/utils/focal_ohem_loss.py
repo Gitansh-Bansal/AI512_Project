@@ -69,14 +69,15 @@ class FocalOhemCrossEntropy(nn.Module):
         focal_weight = torch.pow(1.0 - pt + 1e-6, self.gamma)
         focal_loss = focal_weight * raw_ce
 
-        # OHEM thresholding
-        sorted_pt, ind = pt.sort()
-        min_pt = sorted_pt[min(self.min_kept, sorted_pt.numel() - 1)]
-        threshold = max(min_pt.item(), self.thresh)
-
-        hard_mask = pt < threshold
-        if hard_mask.sum() > 0:
-            return focal_loss[hard_mask].mean()
+        # OHEM thresholding without CPU synchronization stalls
+        if pt.numel() > self.min_kept:
+            # torch.kthvalue is O(N) instead of O(N log N) sort, keeps computation on GPU
+            min_pt = torch.kthvalue(pt, self.min_kept)[0]
+            thresh_tensor = torch.maximum(min_pt, torch.tensor(self.thresh, device=pt.device, dtype=pt.dtype))
+            hard_mask = pt < thresh_tensor
+            loss_kept = focal_loss * hard_mask.float()
+            num_kept = torch.clamp(hard_mask.sum(), min=1.0)
+            return loss_kept.sum() / num_kept
         else:
             return focal_loss.mean()
 

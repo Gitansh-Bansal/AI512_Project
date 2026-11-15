@@ -36,12 +36,9 @@ class LogitKDLoss(nn.Module):
         # Element-wise KL divergence: sum across class channels C
         kl_div = F.kl_div(log_prob_s, prob_t, reduction='none').sum(dim=1)  # shape: (B, H, W)
 
-        # Mask out ignore_label (255) pixels
-        mask = (labels != self.ignore_label)
-        if mask.sum() > 0:
-            loss = (kl_div * mask.float()).sum() / mask.sum()
-        else:
-            loss = kl_div.mean()
+        # Mask out ignore_label (255) pixels without CPU stalls
+        mask = (labels != self.ignore_label).float()
+        loss = (kl_div * mask).sum() / torch.clamp(mask.sum(), min=1.0)
 
         # Scale by T^2 according to Hinton et al.
         return loss * (t * t)

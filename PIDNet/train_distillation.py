@@ -69,23 +69,24 @@ def train_epoch(wrapper, train_loader, optimizer, device, epoch, max_epochs, bas
             loss.backward()
             optimizer.step()
 
-        total_loss_accum += loss.item()
-        sem_loss_accum += loss_sem.item()
-        bd_loss_accum += loss_bd.item()
-        kd_loss_accum += loss_kd.item()
+        total_loss_accum += loss.detach()
+        sem_loss_accum += loss_sem.detach()
+        bd_loss_accum += loss_bd.detach()
+        kd_loss_accum += loss_kd.detach()
 
-        pbar.set_postfix({
-            'loss': f"{loss.item():.4f}",
-            'sem': f"{loss_sem.item():.4f}",
-            'bd': f"{loss_bd.item():.4f}",
-            'kd': f"{loss_kd.item():.4f}",
-            'lr': f"{lr:.6f}"
-        })
+        if (batch_idx + 1) % 15 == 0 or (batch_idx + 1) == num_batches:
+            pbar.set_postfix({
+                'loss': f"{loss.item():.4f}",
+                'sem': f"{loss_sem.item():.4f}",
+                'bd': f"{loss_bd.item():.4f}",
+                'kd': f"{loss_kd.item():.4f}",
+                'lr': f"{lr:.6f}"
+            })
 
-    avg_total = total_loss_accum / max(1, num_batches)
-    avg_sem = sem_loss_accum / max(1, num_batches)
-    avg_bd = bd_loss_accum / max(1, num_batches)
-    avg_kd = kd_loss_accum / max(1, num_batches)
+    avg_total = float((total_loss_accum / max(1, num_batches)).item())
+    avg_sem = float((sem_loss_accum / max(1, num_batches)).item())
+    avg_bd = float((bd_loss_accum / max(1, num_batches)).item())
+    avg_kd = float((kd_loss_accum / max(1, num_batches)).item())
     return avg_total, avg_sem, avg_bd, avg_kd
 
 
@@ -210,7 +211,7 @@ def run_training_distillation(
         torch.backends.cudnn.benchmark = True
     cv2.setNumThreads(0)
 
-    num_workers = min(4, os.cpu_count() or 2) if device.type == 'cuda' else 0
+    num_workers = min(2, os.cpu_count() or 2) if device.type == 'cuda' else 0
     pin_memory = (device.type == 'cuda')
 
     train_loader = DataLoader(

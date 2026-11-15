@@ -1,5 +1,5 @@
-Data/
-output/
+/Data/
+/output/
 **/__pycache__/
 *.pyc
 *.pt

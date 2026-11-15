@@ -30,7 +30,10 @@ class NightCity(BaseDataset):
         super(NightCity, self).__init__(ignore_label, base_size,
                 crop_size, scale_factor, mean, std,)
 
-        self.root = root
+        norm_root = os.path.normpath(str(root))
+        while os.path.basename(norm_root).lower() in ("nightcity-label", "nightcity-images", "label", "images"):
+            norm_root = os.path.dirname(norm_root)
+        self.root = norm_root
         self.list_path = list_path
         self.num_classes = num_classes
         self.photo_aug = photo_aug
@@ -120,36 +123,60 @@ class NightCity(BaseDataset):
             return label
         return self.label_lut[label].copy()
 
+    def _find_file(self, rel_path, kind='img'):
+        norm_rel = rel_path.replace('\\', '/')
+        p = os.path.join(self.root, norm_rel)
+        if os.path.exists(p):
+            return p
+
+        p_parent = os.path.join(os.path.dirname(self.root), norm_rel)
+        if os.path.exists(p_parent):
+            return p_parent
+
+        for base in [self.root, os.path.dirname(self.root)]:
+            if "NightCity-images/NightCity-images" in norm_rel:
+                cand = os.path.join(base, norm_rel.replace("NightCity-images/NightCity-images", "NightCity-images"))
+                if os.path.exists(cand):
+                    return cand
+            if "NightCity-label/NightCity-label" in norm_rel:
+                cand = os.path.join(base, norm_rel.replace("NightCity-label/NightCity-label", "NightCity-label"))
+                if os.path.exists(cand):
+                    return cand
+
+        sub_folder = "images" if kind == 'img' else "label"
+        if f"{sub_folder}/" in norm_rel:
+            suffix = sub_folder + "/" + norm_rel.split(f"{sub_folder}/", 1)[-1]
+            for base in [self.root, os.path.dirname(self.root)]:
+                for cand in [
+                    os.path.join(base, suffix),
+                    os.path.join(base, f"NightCity-{sub_folder}", suffix),
+                    os.path.join(base, f"NightCity-{sub_folder}", f"NightCity-{sub_folder}", suffix),
+                    os.path.join(base, "nightcity", suffix),
+                    os.path.join(base, "nightcity-dataset", suffix)
+                ]:
+                    if os.path.exists(cand):
+                        return cand
+
+        for alt in [os.path.join('AI512_Project', 'Data', norm_rel), os.path.join('Data', norm_rel)]:
+            if os.path.exists(alt):
+                return alt
+
+        fname = os.path.basename(norm_rel)
+        search_dirs = [self.root, os.path.dirname(self.root)]
+        if os.path.exists('/kaggle/input'):
+            search_dirs.append('/kaggle/input')
+        for sdir in search_dirs:
+            if os.path.exists(sdir):
+                for match in Path(sdir).rglob(fname):
+                    return str(match)
+
+        raise FileNotFoundError(f"{'Image' if kind == 'img' else 'Label'} not found: {p} (root={self.root})")
+
     def __getitem__(self, index):
         item = self.files[index]
         name = item["name"]
         
-        img_full_path = os.path.join(self.root, item["img"])
-        if not os.path.exists(img_full_path):
-            if "NightCity-images/NightCity-images" in item["img"]:
-                single_nested = item["img"].replace("NightCity-images/NightCity-images", "NightCity-images")
-                if os.path.exists(os.path.join(self.root, single_nested)):
-                    img_full_path = os.path.join(self.root, single_nested)
-        if not os.path.exists(img_full_path):
-            if "images/" in item["img"]:
-                no_prefix = "images/" + item["img"].split("images/", 1)[-1]
-                if os.path.exists(os.path.join(self.root, no_prefix)):
-                    img_full_path = os.path.join(self.root, no_prefix)
-        if not os.path.exists(img_full_path):
-            for candidate_folder in [os.path.join(self.root, 'NightCity-images'), os.path.join(self.root, 'nightcity')]:
-                if os.path.exists(candidate_folder):
-                    sub = os.path.join(candidate_folder, "images", item["img"].split("images/", 1)[-1] if "images/" in item["img"] else item["img"])
-                    if os.path.exists(sub):
-                        img_full_path = sub
-                        break
-        if not os.path.exists(img_full_path):
-            # check relative to repo
-            alt = os.path.join('AI512_Project', 'Data', item["img"])
-            if os.path.exists(alt):
-                img_full_path = alt
-            else:
-                raise FileNotFoundError(f"Image not found: {img_full_path} (root={self.root})")
-
+        img_full_path = self._find_file(item["img"], kind='img')
         image = cv2.imread(img_full_path, cv2.IMREAD_COLOR)
         if image is None:
             raise ValueError(f"Failed to read image at {img_full_path}")
@@ -163,36 +190,17 @@ class NightCity(BaseDataset):
             image = image.transpose((2, 0, 1))
             return image.copy(), np.array(size), name
 
-        lbl_full_path = os.path.join(self.root, item["label"])
-        if not os.path.exists(lbl_full_path):
-            if "NightCity-label/NightCity-label" in item["label"]:
-                single_nested = item["label"].replace("NightCity-label/NightCity-label", "NightCity-label")
-                if os.path.exists(os.path.join(self.root, single_nested)):
-                    lbl_full_path = os.path.join(self.root, single_nested)
-        if not os.path.exists(lbl_full_path):
-            if "label/" in item["label"]:
-                no_prefix = "label/" + item["label"].split("label/", 1)[-1]
-                if os.path.exists(os.path.join(self.root, no_prefix)):
-                    lbl_full_path = os.path.join(self.root, no_prefix)
-        if not os.path.exists(lbl_full_path):
-            for candidate_folder in [os.path.join(self.root, 'NightCity-label'), os.path.join(self.root, 'nightcity')]:
-                if os.path.exists(candidate_folder):
-                    sub = os.path.join(candidate_folder, "label", item["label"].split("label/", 1)[-1] if "label/" in item["label"] else item["label"])
-                    if os.path.exists(sub):
-                        lbl_full_path = sub
-                        break
-        if not os.path.exists(lbl_full_path):
-            alt = os.path.join('AI512_Project', 'Data', item["label"])
-            if os.path.exists(alt):
-                lbl_full_path = alt
-            else:
-                raise FileNotFoundError(f"Label not found: {lbl_full_path} (root={self.root})")
-
+        lbl_full_path = self._find_file(item["label"], kind='lbl')
         label = cv2.imread(lbl_full_path, cv2.IMREAD_GRAYSCALE)
         if label is None:
             raise ValueError(f"Failed to read label at {lbl_full_path}")
 
         label = self.convert_label(label)
+
+        image, label, edge = self.gen_sample(image, label, 
+                                self.multi_scale, self.flip, edge_size=self.bd_dilate_size)
+
+        return image.copy(), label.copy(), edge.copy(), np.array(size), name
 
         image, label, edge = self.gen_sample(image, label, 
                                 self.multi_scale, self.flip, edge_size=self.bd_dilate_size)

@@ -41,10 +41,13 @@ AI512_Project/
 │   │   └── task3_twinlitenetplus_nightcity_baseline.ipynb
 │   ├── 04_option1_exposure_aware/          # Dual-domain exposure guidance
 │   │   └── task6_pidnet_exposure_aware.ipynb
-│   └── 05_option2_knowledge_distillation/  # Cross-architecture SegFormer distillation
-│       ├── task7_pidnet_segformer_distillation.ipynb
-│       ├── task8_ddrnet_segformer_distillation.ipynb
-│       └── task9_twinlitenetplus_segformer_distillation.ipynb
+│   └── 05_option2_knowledge_distillation/  # Standard & Enhanced SegFormer distillation
+│       ├── task7_pidnet_knowledge_distillation.ipynb
+│       ├── task7_pidnet_knowledge_distillation_enhanced.ipynb
+│       ├── task8_ddrnet_knowledge_distillation.ipynb
+│       ├── task8_ddrnet_knowledge_distillation_enhanced.ipynb
+│       ├── task9_twinlite_knowledge_distillation.ipynb
+│       └── task9_twinlite_knowledge_distillation_enhanced.ipynb
 │
 ├── results/                                # Execution outputs, logs & trained states
 │   └── trained_notebooks/                  # Preserved fully-executed Kaggle notebooks
@@ -80,9 +83,9 @@ AI512_Project/
 | **Task 4** | Failure Analysis of Nocturnal Degradation | — | [`reports/failure_analysis_report.md`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/reports/failure_analysis_report.md) |
 | **Task 5** | Hyperparameter Tuning & Ablation Studies | — | [`reports/hyperparameter_tuning_report.md`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/reports/hyperparameter_tuning_report.md) |
 | **Task 6** | Option 1: Exposure-Aware PIDNet | [`notebooks/04_option1_exposure_aware/task6_pidnet_exposure_aware.ipynb`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/04_option1_exposure_aware/task6_pidnet_exposure_aware.ipynb) | `PIDNet/models/pidnet_exposure.py`, `PIDNet/train_exposure.py` |
-| **Task 7** | Option 2: PIDNet-S SegFormer Distillation | [`notebooks/05_option2_knowledge_distillation/task7_pidnet_segformer_distillation.ipynb`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/05_option2_knowledge_distillation/task7_pidnet_segformer_distillation.ipynb) | `PIDNet/train_distillation.py`, `PIDNet/distillation/` |
-| **Task 8** | Option 2: DDRNet-23-slim Distillation | [`notebooks/05_option2_knowledge_distillation/task8_ddrnet_segformer_distillation.ipynb`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/05_option2_knowledge_distillation/task8_ddrnet_segformer_distillation.ipynb) | `DDRNet/train_distillation.py`, `DDRNet/distillation/` |
-| **Task 9** | Option 2: TwinLiteNetPlus Distillation | [`notebooks/05_option2_knowledge_distillation/task9_twinlitenetplus_segformer_distillation.ipynb`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/05_option2_knowledge_distillation/task9_twinlitenetplus_segformer_distillation.ipynb) | `TwinLiteNetPlus/train_distillation.py` |
+| **Task 7** | Option 2: PIDNet-S Distillation (Standard & Enhanced) | [`task7_pidnet_knowledge_distillation.ipynb`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/05_option2_knowledge_distillation/task7_pidnet_knowledge_distillation.ipynb) & [`enhanced`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/05_option2_knowledge_distillation/task7_pidnet_knowledge_distillation_enhanced.ipynb) | `PIDNet/train_distillation.py`, `PIDNet/distillation/` |
+| **Task 8** | Option 2: DDRNet-23-slim Distillation (Standard & Enhanced) | [`task8_ddrnet_knowledge_distillation.ipynb`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/05_option2_knowledge_distillation/task8_ddrnet_knowledge_distillation.ipynb) & [`enhanced`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/05_option2_knowledge_distillation/task8_ddrnet_knowledge_distillation_enhanced.ipynb) | `DDRNet/train_distillation.py`, `DDRNet/distillation/` |
+| **Task 9** | Option 2: TwinLiteNetPlus Distillation (Standard & Enhanced) | [`task9_twinlite_knowledge_distillation.ipynb`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/05_option2_knowledge_distillation/task9_twinlite_knowledge_distillation.ipynb) & [`enhanced`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/05_option2_knowledge_distillation/task9_twinlite_knowledge_distillation_enhanced.ipynb) | `TwinLiteNetPlus/train_distillation.py` |
 
 ---
 

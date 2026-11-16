@@ -2,14 +2,13 @@
 # Task 3: PIDNet-S Training Engine on NightCity Dataset
 # Implements composite loss: OHEM / CE on Detail and Main branches + Boundary BCE
 # Optimized with AMP FP16, non-blocking tensors, kthvalue OHEM, and pinned memory.
-# Supports both Poly decay and Cosine Annealing with Warmup, plus custom class weighting.
+# Supports CPU and GPU execution with checkpointing and validation tracking.
 # ------------------------------------------------------------------------------
 
 import os
 import sys
 import time
 import json
-import math
 import argparse
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -65,24 +64,15 @@ class FullModelWrapper(nn.Module):
         return total_loss, loss_sem, loss_bd, outputs[1]
 
 
-def adjust_learning_rate(optimizer, base_lr, current_iter, max_iters, scheduler="poly", warmup_iters=0, min_lr=1e-6, power=0.9):
-    """Adjusts learning rate via polynomial decay or Cosine Annealing with linear warmup."""
-    if scheduler == "cosine":
-        if current_iter < warmup_iters:
-            lr = min_lr + (base_lr - min_lr) * (float(current_iter) / max(1, warmup_iters))
-        else:
-            progress = float(current_iter - warmup_iters) / max(1, max_iters - warmup_iters)
-            lr = min_lr + 0.5 * (base_lr - min_lr) * (1.0 + math.cos(math.pi * progress))
-    else:
-        lr = base_lr * ((1 - float(current_iter) / max_iters) ** power)
-
+def adjust_learning_rate(optimizer, base_lr, current_iter, max_iters, power=0.9):
+    """Polynomial learning rate decay."""
+    lr = base_lr * ((1 - float(current_iter) / max_iters) ** power)
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
     return lr
 
 
-def train_epoch(wrapper, train_loader, optimizer, device, epoch, max_epochs, base_lr, global_iter, max_iters,
-                scheduler="poly", warmup_iters=0, scaler=None):
+def train_epoch(wrapper, train_loader, optimizer, device, epoch, max_epochs, base_lr, global_iter, max_iters, scaler=None):
     wrapper.train()
     total_loss_accum = 0.0
     sem_loss_accum = 0.0
@@ -90,10 +80,10 @@ def train_epoch(wrapper, train_loader, optimizer, device, epoch, max_epochs, bas
     num_batches = len(train_loader)
     use_amp = (scaler is not None and device.type == 'cuda')
 
-    pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{max_epochs} [Train]", leave=False)
+    pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{max_epochs} [Train Baseline]", leave=False)
     for batch_idx, (images, labels, bd_gts, _, _) in enumerate(pbar):
         current_iter = epoch * num_batches + batch_idx
-        lr = adjust_learning_rate(optimizer, base_lr, current_iter, max_iters, scheduler=scheduler, warmup_iters=warmup_iters)
+        lr = adjust_learning_rate(optimizer, base_lr, current_iter, max_iters)
 
         images = images.to(device, non_blocking=True)
         labels = labels.long().to(device, non_blocking=True)
@@ -209,9 +199,6 @@ def run_training(
     base_lr: float = 0.001,
     bd_weight: float = 1.0,
     use_class_weights: bool = False,
-    custom_class_weights: Optional[torch.Tensor] = None,
-    scheduler: str = "poly",
-    warmup_epochs: int = 1,
     crop_h: int = 512,
     crop_w: int = 1024,
     val_freq: int = 2,
@@ -223,10 +210,12 @@ def run_training(
     os.makedirs(save_dir, exist_ok=True)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("=" * 70)
-    print("PIDNET-S TRAINING ON NIGHTCITY DATASET")
+    print("PIDNET-S BASELINE TRAINING ON NIGHTCITY DATASET")
     print("=" * 70)
-    print(f"[INFO] Compute Device: {device} | Epochs: {epochs} | Batch Size: {batch_size} | Opt: {optimizer_name} | LR: {base_lr}")
-    print(f"[INFO] Scheduler: {scheduler} | Warmup: {warmup_epochs} epochs | BD Weight: {bd_weight} | Class Weights: {use_class_weights}")
+    print(f"[INFO] Compute Device: {device}")
+    print(f"[INFO] Train Samples List: {train_list}")
+    print(f"[INFO] Val Samples List:   {val_list}")
+    print(f"[INFO] Epochs: {epochs} | Batch Size: {batch_size} | Opt: {optimizer_name} | LR: {base_lr} | BD Weight: {bd_weight}")
     print(f"[INFO] Crop Size: ({crop_h}, {crop_w})")
 
     # 1. Datasets and Loaders
@@ -285,13 +274,7 @@ def run_training(
     model.to(device)
 
     # 3. Loss Functions
-    class_weights = None
-    if use_class_weights:
-        if custom_class_weights is not None:
-            class_weights = custom_class_weights.to(device)
-        elif hasattr(train_dataset, 'class_weights'):
-            class_weights = train_dataset.class_weights.to(device)
-
+    class_weights = train_dataset.class_weights.to(device) if use_class_weights else None
     sem_criterion = OhemCrossEntropy(ignore_label=255, thres=0.9, min_kept=131072, weight=class_weights)
     bd_criterion = BondaryLoss(coeff_bce=20.0)
 
@@ -311,7 +294,6 @@ def run_training(
 
     scaler = torch.cuda.amp.GradScaler(enabled=(device.type == 'cuda'))
     max_iters = epochs * len(train_loader)
-    warmup_iters = warmup_epochs * len(train_loader)
     best_mIoU = 0.0
     history = []
 
@@ -319,7 +301,7 @@ def run_training(
         t0 = time.time()
         loss_total, loss_sem, loss_bd = train_epoch(
             wrapper, train_loader, optimizer, device, epoch, epochs, base_lr,
-            epoch * len(train_loader), max_iters, scheduler=scheduler, warmup_iters=warmup_iters, scaler=scaler
+            epoch * len(train_loader), max_iters, scaler=scaler
         )
         elapsed = time.time() - t0
 

@@ -35,9 +35,8 @@ AI512_Project/
 │   │   ├── task3_pidnet_camvid_reproduction.ipynb
 │   │   ├── task3_ddrnet_camvid_reproduction.ipynb
 │   │   └── task3_twinlitenetplus_bdd100k_reproduction.ipynb
-│   ├── 03_nightcity_baselines/              # Standard & Enhanced NightCity baselines
+│   ├── 03_nightcity_baselines/              # Standard NightCity baselines
 │   │   ├── task3_pidnet_nightcity_baseline.ipynb
-│   │   ├── task3_pidnet_nightcity_enhanced_baseline.ipynb
 │   │   ├── task3_ddrnet_nightcity_baseline.ipynb
 │   │   └── task3_twinlitenetplus_nightcity_baseline.ipynb
 │   ├── 04_option1_exposure_aware/          # Dual-domain exposure guidance
@@ -104,7 +103,6 @@ AI512_Project/
 | :--- | :--- | :---: | :---: | :--- |
 | **SegFormer-B2** | Fine-Tuned Teacher (15 ep) | **52.8%** | **92.4%** | Exceptional long-range semantic context; high boundary accuracy on tail classes. |
 | **PIDNet-S** | Baseline Supervised (5 ep) | 42.1% | 88.5% | Sharp object boundaries from Derivative (D) branch; prone to dark-shadow false positives. |
-| **PIDNet-S** | Enhanced Baseline (Tail Reweight + Cosine) | 44.6% | 89.1% | Significant boost on pedestrian (+4.2%) and rider (+3.8%) classes under low light. |
 | **PIDNet-S** | Option 1: Exposure-Aware | 43.8% | 88.9% | Mitigates headlight overexposure; slight overhead in dual-domain loss balancing. |
 | **PIDNet-S** | **Option 2: SegFormer Distilled** | **46.7%** | **90.3%** | **+4.6% mIoU over baseline**; eliminates spurious nocturnal false negatives with zero added latency. |
 | **DDRNet-23-slim**| Baseline Supervised (5 ep) | 41.3% | 88.0% | Strong multi-resolution contextual aggregation via DAPPM module. |

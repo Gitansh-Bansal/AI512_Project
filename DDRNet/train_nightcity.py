@@ -1,6 +1,7 @@
 # ------------------------------------------------------------------------------
-# Task 3 Point 5: DDRNet-23-slim Training Engine on NightCity Dataset
+# Task 3: DDRNet-23-slim Training Engine on NightCity Dataset
 # Implements composite segmentation loss: Main Head + 0.4 * Aux Head (OHEM/CE)
+# Optimized with AMP FP16, non-blocking transfers, kthvalue OHEM, and pinned memory.
 # Supports CPU and CUDA execution with checkpointing and validation tracking.
 # ------------------------------------------------------------------------------
 
@@ -36,7 +37,7 @@ class OhemCrossEntropy(nn.Module):
     Online Hard Example Mining Cross Entropy Loss for semantic segmentation.
     Keeps at least min_kept hardest pixels and thresholded pixels.
     """
-    def __init__(self, ignore_label: int = 255, thres: float = 0.7, min_kept: int = 100000, weight=None):
+    def __init__(self, ignore_label: int = 255, thres: float = 0.7, min_kept: int = 50000, weight=None):
         super(OhemCrossEntropy, self).__init__()
         self.ignore_label = ignore_label
         self.thresh = float(thres)
@@ -56,12 +57,12 @@ class OhemCrossEntropy(nn.Module):
             return score.sum() * 0.0
 
         if self.min_kept > 0 and loss.numel() > self.min_kept:
-            loss_sorted, _ = torch.sort(loss, descending=True)
-            threshold_val = loss_sorted[min(self.min_kept, loss_sorted.numel() - 1)]
+            k = loss.numel() - self.min_kept
+            threshold_val = torch.kthvalue(loss, k).values
             if threshold_val > self.thresh:
                 loss = loss[loss >= self.thresh]
             else:
-                loss = loss_sorted[:self.min_kept]
+                loss = loss[loss >= threshold_val]
         return loss.mean()
 
 
@@ -93,47 +94,54 @@ class DDRNetLossWrapper(nn.Module):
         return loss_total, loss_main, loss_aux
 
 
-def train_epoch(model, loss_module, loader, optimizer, device, epoch, max_epochs, base_lr, global_step, max_iters):
+def train_epoch(model, loss_module, loader, optimizer, device, epoch, max_epochs, base_lr, global_step, max_iters, scaler=None):
     model.train()
     total_loss_accum = 0.0
     main_loss_accum = 0.0
     aux_loss_accum = 0.0
-    num_batches = 0
+    num_batches = len(loader)
+    use_amp = (scaler is not None and device.type == 'cuda')
 
-    pbar = tqdm(loader, desc=f"Epoch {epoch+1}/{max_epochs}", leave=False)
+    pbar = tqdm(loader, desc=f"Epoch {epoch+1}/{max_epochs} [DDRNet Train]", leave=False)
     for step, batch in enumerate(pbar):
         images, labels = batch[0], batch[1]
-        images = images.to(device)
-        labels = labels.long().to(device)
+        images = images.to(device, non_blocking=True)
+        labels = labels.long().to(device, non_blocking=True)
 
         # Poly learning rate decay
         cur_iter = global_step + step
-        poly_lr = base_lr * ((1.0 - cur_iter / max_iters) ** 0.9)
+        poly_lr = base_lr * ((1.0 - float(cur_iter) / max_iters) ** 0.9)
         for param_group in optimizer.param_groups:
             param_group['lr'] = poly_lr
 
-        optimizer.zero_grad()
-        preds = model(images)
-        loss_total, loss_main, loss_aux = loss_module(preds, labels)
+        optimizer.zero_grad(set_to_none=True)
+        with torch.cuda.amp.autocast(enabled=use_amp):
+            preds = model(images)
+            loss_total, loss_main, loss_aux = loss_module(preds, labels)
 
-        loss_total.backward()
-        optimizer.step()
+        if use_amp:
+            scaler.scale(loss_total).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss_total.backward()
+            optimizer.step()
 
-        total_loss_accum += loss_total.item()
-        main_loss_accum += loss_main.item()
-        aux_loss_accum += loss_aux.item()
-        num_batches += 1
+        total_loss_accum += loss_total.detach()
+        main_loss_accum += loss_main.detach()
+        aux_loss_accum += loss_aux.detach()
 
-        pbar.set_postfix({
-            'Total': f"{loss_total.item():.4f}",
-            'Main': f"{loss_main.item():.4f}",
-            'Aux': f"{loss_aux.item():.4f}",
-            'LR': f"{poly_lr:.6f}"
-        })
+        if (step + 1) % 15 == 0 or (step + 1) == num_batches:
+            pbar.set_postfix({
+                'Total': f"{loss_total.item():.4f}",
+                'Main': f"{loss_main.item():.4f}",
+                'Aux': f"{loss_aux.item():.4f}",
+                'LR': f"{poly_lr:.6f}"
+            })
 
-    avg_total = total_loss_accum / max(1, num_batches)
-    avg_main = main_loss_accum / max(1, num_batches)
-    avg_aux = aux_loss_accum / max(1, num_batches)
+    avg_total = float((total_loss_accum / max(1, num_batches)).item())
+    avg_main = float((main_loss_accum / max(1, num_batches)).item())
+    avg_aux = float((aux_loss_accum / max(1, num_batches)).item())
     return avg_total, avg_main, avg_aux
 
 
@@ -141,75 +149,60 @@ def validate_model(model, val_loader, device, num_samples=None):
     model.eval()
     metric_engine = SegmentationMetrics(num_classes=19, ignore_label=255, class_names=CITYSCAPES_CLASSES)
     eval_count = 0
+    use_amp = (device.type == 'cuda')
 
     with torch.no_grad():
-        for batch in tqdm(val_loader, desc="Validating", leave=False):
+        for batch in tqdm(val_loader, desc="Validating DDRNet", leave=False):
             images, labels = batch[0], batch[1]
-            images = images.to(device)
-            preds = model(images)
-            if isinstance(preds, list):
-                preds = preds[0]
-
-            if preds.shape[-2:] != labels.shape[-2:]:
-                preds = F.interpolate(preds, size=labels.shape[-2:], mode='bilinear', align_corners=True)
+            images = images.to(device, non_blocking=True)
+            with torch.cuda.amp.autocast(enabled=use_amp):
+                preds = model(images)
+                if isinstance(preds, (list, tuple)):
+                    preds = preds[0]
+                if preds.shape[-2:] != labels.shape[-2:]:
+                    preds = F.interpolate(preds, size=labels.shape[-2:], mode='bilinear', align_corners=True)
 
             pred_classes = torch.argmax(preds, dim=1).cpu().numpy()
             targets = labels.numpy()
             metric_engine.update(pred_classes, targets)
 
             eval_count += images.size(0)
-            if num_samples and eval_count >= num_samples:
+            if num_samples is not None and eval_count >= num_samples:
                 break
 
-    metrics = metric_engine.compute_metrics()
-    return metrics
+    return metric_engine.compute_metrics()
 
 
 def plot_training_history(history: List[Dict], save_path: Optional[str] = None):
-    """
-    Plots DDRNet training loss vs epoch (total, main, aux) and validation mIoU vs epoch.
-    """
-    if not history:
-        print("[WARNING] Empty history; cannot generate loss plot.")
-        return None
+    epochs = [r['epoch'] for r in history]
+    train_losses = [r['train_loss_total'] for r in history]
+    main_losses = [r.get('train_loss_main', 0) for r in history]
+    aux_losses = [r.get('train_loss_aux', 0) for r in history]
 
-    epochs = [h['epoch'] for h in history]
-    total_losses = [h['train_loss_total'] for h in history]
-    main_losses = [h['train_loss_main'] for h in history]
-    aux_losses = [h['train_loss_aux'] for h in history]
-    val_epochs = [h['epoch'] for h in history if 'val_mIoU' in h]
-    val_mious = [h['val_mIoU'] for h in history if 'val_mIoU' in h]
+    val_epochs = [r['epoch'] for r in history if 'val_mIoU' in r]
+    val_mious = [r['val_mIoU'] for r in history if 'val_mIoU' in r]
+    val_accs = [r.get('val_acc', 0) for r in history if 'val_acc' in r]
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
-    # Subplot 1: Loss vs Epoch
-    axes[0].plot(epochs, total_losses, marker='o', color='#1f77b4', linewidth=2, label='Total Loss')
-    axes[0].plot(epochs, main_losses, marker='s', linestyle='--', color='#2ca02c', linewidth=1.5, label='Main Head Loss')
-    axes[0].plot(epochs, aux_losses, marker='^', linestyle=':', color='#ff7f0e', linewidth=1.5, label='Aux Head Loss')
-    axes[0].set_title('DDRNet Training Loss vs. Epoch', fontsize=12, fontweight='bold')
+    axes[0].plot(epochs, train_losses, label='Total Loss', color='#1f77b4', linewidth=2)
+    axes[0].plot(epochs, main_losses, label='Main Loss', color='#2ca02c', linestyle='--', linewidth=1.5)
+    axes[0].plot(epochs, aux_losses, label='Aux Loss', color='#ff7f0e', linestyle=':', linewidth=1.5)
+    axes[0].set_title('DDRNet-23-slim Training Loss Curves', fontsize=12, fontweight='bold')
     axes[0].set_xlabel('Epoch', fontsize=10)
-    axes[0].set_ylabel('Loss Value', fontsize=10)
+    axes[0].set_ylabel('Loss', fontsize=10)
     axes[0].grid(True, linestyle='--', alpha=0.5)
     axes[0].legend(loc='upper right')
-    if len(epochs) == 1:
-        axes[0].set_xlim(0.5, 1.5)
-        axes[0].set_xticks([1])
-    elif len(epochs) <= 10:
-        axes[0].set_xticks(epochs)
 
-    # Subplot 2: Validation Metric vs Epoch
     if val_mious:
         axes[1].plot(val_epochs, val_mious, marker='o', color='#d62728', linewidth=2, label='Validation mIoU (%)')
-        axes[1].set_title('Validation mIoU vs. Epoch', fontsize=12, fontweight='bold')
+        if any(val_accs):
+            axes[1].plot(val_epochs, val_accs, marker='s', color='#9467bd', linestyle='--', linewidth=1.5, label='Pixel Acc (%)')
+        axes[1].set_title('Validation Accuracy vs. Epoch', fontsize=12, fontweight='bold')
         axes[1].set_xlabel('Epoch', fontsize=10)
-        axes[1].set_ylabel('mIoU (%)', fontsize=10)
+        axes[1].set_ylabel('Accuracy (%)', fontsize=10)
         axes[1].grid(True, linestyle='--', alpha=0.5)
         axes[1].legend(loc='lower right')
-        if len(val_epochs) == 1:
-            axes[1].set_xlim(0.5, 1.5)
-            axes[1].set_xticks([1])
-        elif len(val_epochs) <= 10:
-            axes[1].set_xticks(val_epochs)
     else:
         axes[1].text(0.5, 0.5, 'Validation metrics not recorded', ha='center', va='center', fontsize=11)
         axes[1].set_title('Validation Metrics', fontsize=12, fontweight='bold')
@@ -225,16 +218,16 @@ def run_training(
     data_root: str = "AI512_Project/Data",
     train_list: str = "DDRNet/data/list/nightcity/train.lst",
     val_list: str = "DDRNet/data/list/nightcity/val.lst",
-    epochs: int = 10,
+    epochs: int = 30,
     batch_size: int = 4,
-    optimizer_name: str = "sgd",
-    base_lr: float = 0.005,
-    aux_weight: float = 0.8,
-    use_class_weights: bool = True,
+    optimizer_name: str = "adamw",
+    base_lr: float = 0.001,
+    aux_weight: float = 0.4,
+    use_class_weights: bool = False,
     crop_h: int = 512,
-    crop_w: int = 512,
-    val_freq: int = 1,
-    val_samples: Optional[int] = 50,
+    crop_w: int = 1024,
+    val_freq: int = 2,
+    val_samples: Optional[int] = None,
     num_train_samples: Optional[int] = None,
     save_dir: str = "output/nightcity_ddrnet_train",
     pretrained_weights: Optional[str] = None
@@ -242,12 +235,12 @@ def run_training(
     os.makedirs(save_dir, exist_ok=True)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("=" * 70)
-    print("DDRNET-23-SLIM TRAINING ON NIGHTCITY DATASET")
+    print("DDRNET-23-SLIM BASELINE TRAINING ON NIGHTCITY DATASET")
     print("=" * 70)
     print(f"[INFO] Compute Device: {device}")
     print(f"[INFO] Train Samples List: {train_list}")
     print(f"[INFO] Val Samples List:   {val_list}")
-    print(f"[INFO] Epochs: {epochs} | Batch Size: {batch_size} | Opt: {optimizer_name} | LR: {base_lr} | Aux: {aux_weight} | Class Weights: {use_class_weights}")
+    print(f"[INFO] Epochs: {epochs} | Batch Size: {batch_size} | Opt: {optimizer_name} | LR: {base_lr} | Aux: {aux_weight}")
     print(f"[INFO] Crop Size: ({crop_h}, {crop_w})")
 
     # 1. Datasets and Loaders
@@ -255,7 +248,7 @@ def run_training(
         root=data_root,
         list_path=train_list,
         num_classes=19,
-        multi_scale=True,
+        multi_scale=False,
         flip=True,
         crop_size=(crop_h, crop_w)
     )
@@ -268,23 +261,24 @@ def run_training(
         num_classes=19,
         multi_scale=False,
         flip=False,
-        crop_size=(crop_h, crop_w)
+        crop_size=(512, 1024)
     )
 
+    num_workers = 2 if device.type == 'cuda' else 0
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=0,
-        pin_memory=False,
+        num_workers=num_workers,
+        pin_memory=(device.type == 'cuda'),
         drop_last=True
     )
     val_loader = DataLoader(
         val_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=0,
-        pin_memory=False
+        num_workers=num_workers,
+        pin_memory=(device.type == 'cuda')
     )
     print(f"[INFO] Train images loaded: {len(train_dataset)} | Batches per epoch: {len(train_loader)}")
     print(f"[INFO] Val images loaded:   {len(val_dataset)}")
@@ -319,6 +313,7 @@ def run_training(
             nesterov=False
         )
 
+    scaler = torch.cuda.amp.GradScaler(enabled=(device.type == 'cuda'))
     max_iters = epochs * len(train_loader)
     best_mIoU = 0.0
     history = []
@@ -326,7 +321,8 @@ def run_training(
     for epoch in range(epochs):
         t0 = time.time()
         loss_total, loss_main, loss_aux = train_epoch(
-            model, loss_module, train_loader, optimizer, device, epoch, epochs, base_lr, epoch * len(train_loader), max_iters
+            model, loss_module, train_loader, optimizer, device, epoch, epochs, base_lr,
+            epoch * len(train_loader), max_iters, scaler=scaler
         )
         elapsed = time.time() - t0
 
@@ -341,7 +337,6 @@ def run_training(
 
         # Validation
         if (epoch + 1) % val_freq == 0 or (epoch + 1) == epochs:
-            print("[INFO] Running Validation...")
             model.augment = False
             metrics = validate_model(model, val_loader, device, num_samples=val_samples)
             model.augment = True
@@ -352,7 +347,7 @@ def run_training(
             val_spec = metrics['mean_Specificity'] * 100
             val_acc = metrics['Pixel_Accuracy'] * 100
 
-            print(f"[Val] mIoU: {val_mIoU:.2f}% | Dice: {val_dice:.2f}% | Sensitivity: {val_sens:.2f}% | Specificity: {val_spec:.2f}% | Acc: {val_acc:.2f}%")
+            print(f"  -> Validation mIoU: {val_mIoU:.2f}% | Pixel Acc: {val_acc:.2f}%")
 
             is_best = val_mIoU > best_mIoU
             if is_best:
@@ -364,7 +359,7 @@ def run_training(
                     'best_mIoU': best_mIoU,
                     'metrics': metrics
                 }, best_path)
-                print(f"[INFO] New best model saved to: {best_path}")
+                print(f"  [CHECKPOINT] New best model saved to: {best_path}")
 
             epoch_record.update({
                 'val_mIoU': val_mIoU,
@@ -398,30 +393,5 @@ if __name__ == '__main__':
     parser.add_argument('--data_root', type=str, default='AI512_Project/Data')
     parser.add_argument('--train_list', type=str, default='DDRNet/data/list/nightcity/train.lst')
     parser.add_argument('--val_list', type=str, default='DDRNet/data/list/nightcity/val.lst')
-    parser.add_argument('--epochs', type=int, default=1)
-    parser.add_argument('--batch_size', type=int, default=2)
-    parser.add_argument('--lr', type=float, default=0.01)
-    parser.add_argument('--crop_h', type=int, default=512)
-    parser.add_argument('--crop_w', type=int, default=512)
-    parser.add_argument('--val_freq', type=int, default=1)
-    parser.add_argument('--val_samples', type=int, default=25)
-    parser.add_argument('--train_samples', type=int, default=None)
-    parser.add_argument('--save_dir', type=str, default='output/nightcity_ddrnet_train')
-    parser.add_argument('--pretrained', type=str, default=None)
     args = parser.parse_args()
-
-    run_training(
-        data_root=args.data_root,
-        train_list=args.train_list,
-        val_list=args.val_list,
-        epochs=args.epochs,
-        batch_size=args.batch_size,
-        base_lr=args.lr,
-        crop_h=args.crop_h,
-        crop_w=args.crop_w,
-        val_freq=args.val_freq,
-        val_samples=args.val_samples,
-        num_train_samples=args.train_samples,
-        save_dir=args.save_dir,
-        pretrained_weights=args.pretrained
-    )
+    run_training(data_root=args.data_root, train_list=args.train_list, val_list=args.val_list)

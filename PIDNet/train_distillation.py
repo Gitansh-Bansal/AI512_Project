@@ -177,6 +177,8 @@ def run_training_distillation(
     val_samples: Optional[int] = 10,
     num_train_samples: Optional[int] = None,
     teacher_weights: Optional[str] = None,
+    resume_from: Optional[str] = None,
+    pretrained_student: Optional[str] = None,
     save_dir: str = "output/nightcity_pidnet_distilled"
 ):
     os.makedirs(save_dir, exist_ok=True)
@@ -185,7 +187,7 @@ def run_training_distillation(
     print("KNOWLEDGE DISTILLATION: SEGFORMER-B2 (TEACHER) -> PIDNET-S (STUDENT)")
     print("=" * 70)
     print(f"[INFO] Compute Device: {device}")
-    print(f"[INFO] Epochs: {epochs} | Batch Size: {batch_size} | LR: {base_lr} | BD Weight: {bd_weight} | KD Weight: {kd_weight} (T={kd_temperature})")
+    print(f"[INFO] Epochs requested: {epochs} | Batch Size: {batch_size} | LR: {base_lr} | BD Weight: {bd_weight} | KD Weight: {kd_weight} (T={kd_temperature})")
 
     # Datasets
     train_dataset = NightCity(
@@ -238,6 +240,35 @@ def run_training_distillation(
     # Build Student & Teacher
     print("[INFO] Initializing Student PIDNet-S...")
     student = PIDNet(m=2, n=3, num_classes=19, planes=32, ppm_planes=96, head_planes=128, augment=True)
+
+    start_epoch = 0
+    history = []
+    best_miou = 0.0
+
+    load_ckpt_path = resume_from or pretrained_student
+    if load_ckpt_path and os.path.exists(load_ckpt_path):
+        print(f"[INFO] Loading student weights from {load_ckpt_path}")
+        ckpt = torch.load(load_ckpt_path, map_location='cpu', weights_only=False)
+        state = ckpt.get('state_dict', ckpt)
+        student_dict = student.state_dict()
+        state = {k.replace('module.', ''): v for k, v in state.items() if (k in student_dict and v.shape == student_dict[k].shape)}
+        student_dict.update(state)
+        student.load_state_dict(student_dict, strict=False)
+        print(f"[INFO] Transferred {len(state)} layers into Student PIDNet-S.")
+
+        if resume_from and isinstance(ckpt, dict):
+            if 'epoch' in ckpt:
+                start_epoch = int(ckpt['epoch'])
+                print(f"[INFO] Resuming after previous epoch {start_epoch}")
+            if 'best_miou' in ckpt:
+                best_miou = float(ckpt['best_miou'])
+            elif 'best_mIoU' in ckpt:
+                best_miou = float(ckpt['best_mIoU'])
+            print(f"[INFO] Previous best mIoU: {best_miou*100.0:.2f}%")
+            if 'history' in ckpt and isinstance(ckpt['history'], list):
+                history = list(ckpt['history'])
+                print(f"[INFO] Preserved {len(history)} previous epoch history records.")
+
     student.to(device)
 
     print("[INFO] Loading Teacher SegFormer-B2...")
@@ -255,21 +286,33 @@ def run_training_distillation(
 
     optimizer = torch.optim.AdamW(student.parameters(), lr=base_lr, weight_decay=1e-4)
     scaler = torch.cuda.amp.GradScaler(enabled=(device.type == 'cuda'))
-    max_iters = epochs * len(train_loader)
 
-    history = []
-    best_miou = 0.0
+    # Calculate total epochs
+    if start_epoch > 0:
+        if epochs > start_epoch:
+            total_epochs = epochs
+        else:
+            total_epochs = start_epoch + epochs
+    else:
+        total_epochs = epochs
+
+    num_batches = len(train_loader)
+    session_epochs = max(1, total_epochs - start_epoch)
+    max_iters = session_epochs * num_batches
+
+    print(f"[INFO] Training schedule: Epoch {start_epoch + 1} to {total_epochs} ({session_epochs} new epochs, {max_iters:,} total iters)")
+
     best_path = os.path.join(save_dir, "best_pidnet_distilled.pt")
     latest_path = os.path.join(save_dir, "latest_pidnet_distilled.pt")
 
-    for epoch in range(epochs):
+    for session_idx, epoch in enumerate(range(start_epoch, total_epochs)):
         t0 = time.time()
         loss_total, loss_sem, loss_bd, loss_kd = train_epoch(
-            wrapper, train_loader, optimizer, device, epoch, epochs, base_lr,
-            epoch * len(train_loader), max_iters, scaler=scaler
+            wrapper, train_loader, optimizer, device, session_idx, session_epochs, base_lr,
+            session_idx * num_batches, max_iters, scaler=scaler
         )
         elapsed = time.time() - t0
-        print(f"[Epoch {epoch+1}/{epochs}] Loss: {loss_total:.4f} (Sem: {loss_sem:.4f}, BD: {loss_bd:.4f}, KD: {loss_kd:.4f}) | Time: {elapsed:.1f}s")
+        print(f"[Epoch {epoch+1}/{total_epochs}] Loss: {loss_total:.4f} (Sem: {loss_sem:.4f}, BD: {loss_bd:.4f}, KD: {loss_kd:.4f}) | Time: {elapsed:.1f}s")
 
         epoch_record = {
             'epoch': epoch + 1,
@@ -280,7 +323,7 @@ def run_training_distillation(
             'time_sec': float(elapsed),
         }
 
-        if (epoch + 1) % val_freq == 0 or (epoch + 1) == epochs:
+        if (epoch + 1) % val_freq == 0 or (epoch + 1) == total_epochs:
             student.augment = False
             metrics = validate_student(student, val_loader, device, num_samples=val_samples)
             student.augment = True
@@ -305,6 +348,6 @@ def run_training_distillation(
         with open(os.path.join(save_dir, "training_history.json"), "w") as f:
             json.dump(history, f, indent=2)
 
-    torch.save({'epoch': epochs, 'state_dict': student.state_dict(), 'history': history}, latest_path)
+    torch.save({'epoch': total_epochs, 'state_dict': student.state_dict(), 'history': history}, latest_path)
     plot_distillation_training_history(history, save_path=os.path.join(save_dir, "loss_vs_epoch.png"))
     return history

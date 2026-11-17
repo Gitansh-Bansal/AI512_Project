@@ -330,9 +330,37 @@ def create_deck():
         p_val.font.size = Pt(9)
         p_val.font.color.rgb = C_WHITE
 
-    # Right: Diagram
+    # Right: Diagram & Technical Callout
     if (assets_dir / "arch_pidnet.png").exists():
-        s5.shapes.add_picture(str(assets_dir / "arch_pidnet.png"), Inches(6.6), Inches(1.65), width=Inches(5.933))
+        s5.shapes.add_picture(str(assets_dir / "arch_pidnet.png"), Inches(6.6), Inches(1.8), width=Inches(5.933))
+
+        # Companion callout box below diagram
+        box_c5 = s5.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.6), Inches(4.2), Inches(5.933), Inches(2.6))
+        box_c5.fill.solid()
+        box_c5.fill.fore_color.rgb = C_CARD
+        box_c5.line.color.rgb = C_CARD_BORDER
+
+        tb_c5 = s5.shapes.add_textbox(Inches(6.85), Inches(4.35), Inches(5.433), Inches(2.3))
+        tf_c5 = tb_c5.text_frame
+        tf_c5.word_wrap = True
+
+        p = tf_c5.paragraphs[0]
+        p.text = "KEY MODULE HIGHLIGHTS (PIDNet-S)"
+        p.font.size = Pt(11)
+        p.font.bold = True
+        p.font.color.rgb = C_EMERALD
+
+        p = tf_c5.add_paragraph()
+        p.text = "• PAG (Pixel-Attention Guided Fusion): Generates pixel-wise attention coefficients from the I-branch to selectively inject contextual semantics into high-res P-features."
+        p.font.size = Pt(9.5)
+        p.font.color.rgb = C_WHITE
+        p.space_before = Pt(4)
+
+        p = tf_c5.add_paragraph()
+        p.text = "• PAP (Pixel-Attention Processing / BDF): The Boundary (D) map directly guides the final aggregation of Detail and Context features, suppressing boundary bleeding in unlit areas."
+        p.font.size = Pt(9.5)
+        p.font.color.rgb = C_WHITE
+        p.space_before = Pt(4)
 
     set_notes(s5, "Slide 5 examines PIDNet-S in detail. Inspired by classical PID controllers, PIDNet uses three parallel streams: Proportional for high-res detail, Integral for global context, and Derivative for high-frequency boundaries. In nocturnal driving, where curb and vehicle silhouettes vanish into shadows, the explicit Derivative branch acts as an anchor. It delivers 92.6 FPS on a T4 GPU and achieves our project's peak accuracy of 47.79% mIoU.")
 
@@ -376,8 +404,37 @@ def create_deck():
         p_val.font.size = Pt(9)
         p_val.font.color.rgb = C_WHITE
 
+    # Right: Diagram & Technical Callout
     if (assets_dir / "arch_ddrnet.png").exists():
-        s6.shapes.add_picture(str(assets_dir / "arch_ddrnet.png"), Inches(6.6), Inches(1.65), width=Inches(5.933))
+        s6.shapes.add_picture(str(assets_dir / "arch_ddrnet.png"), Inches(6.6), Inches(1.7), width=Inches(5.933))
+
+        # Companion callout box below diagram
+        box_c6 = s6.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.6), Inches(4.9), Inches(5.933), Inches(1.9))
+        box_c6.fill.solid()
+        box_c6.fill.fore_color.rgb = C_CARD
+        box_c6.line.color.rgb = C_CARD_BORDER
+
+        tb_c6 = s6.shapes.add_textbox(Inches(6.85), Inches(5.0), Inches(5.433), Inches(1.7))
+        tf_c6 = tb_c6.text_frame
+        tf_c6.word_wrap = True
+
+        p = tf_c6.paragraphs[0]
+        p.text = "KEY MODULE HIGHLIGHTS (DDRNet-23-slim)"
+        p.font.size = Pt(11)
+        p.font.bold = True
+        p.font.color.rgb = C_AMBER
+
+        p = tf_c6.add_paragraph()
+        p.text = "• Bilateral Information Exchange: Spatial detail branch (H/8) never downsamples past 1/8, avoiding the small dark object loss seen in 1/32 architectures."
+        p.font.size = Pt(9.5)
+        p.font.color.rgb = C_WHITE
+        p.space_before = Pt(3)
+
+        p = tf_c6.add_paragraph()
+        p.text = "• DAPPM Module: 5 pooling branches (k=1, 2, 3, 6) with hierarchical recursive fusion provide wide receptive fields to overcome local headlight glare blooms."
+        p.font.size = Pt(9.5)
+        p.font.color.rgb = C_WHITE
+        p.space_before = Pt(3)
 
     set_notes(s6, "Slide 6 details DDRNet-23-slim. It uses bilateral dual-resolution streams with continuous bidirectional feature exchange. The Deep Aggregation Pyramid Pooling Module (DAPPM) extracts large multi-scale context, helping the model see past local headlight glare blooms. With 106.4 FPS throughput and 44.60% distilled mIoU, it is the fastest 19-class network evaluated.")
 
@@ -926,14 +983,22 @@ def create_deck():
 
     set_notes(s16, "Slide 16 concludes our presentation. We have demonstrated that nighttime semantic segmentation does not require heavy, unfeasible architectures. By distilling a Vision Transformer into real-time CNNs, we achieved a new project record of 47.79% mIoU at 92.6 FPS. For future work, INT8 quantization on NVIDIA Orin and multimodal thermal distillation represent immediate next steps. Thank you, and we welcome your questions.")
 
-    output_path = Path("AI512_Project/presentation/Nighttime_Semantic_Segmentation_Presentation.pptx")
-    try:
-        prs.save(output_path)
-        print(f"Presentation successfully updated: {output_path} (Total Slides: {len(prs.slides)})")
-    except PermissionError:
-        alt_path = Path("AI512_Project/presentation/Nighttime_Semantic_Segmentation_Presentation_v2.pptx")
-        prs.save(alt_path)
-        print(f"Original file was open in PowerPoint. Saved updated presentation to: {alt_path} (Total Slides: {len(prs.slides)})")
+    base_name = "Nighttime_Semantic_Segmentation_Presentation"
+    saved = False
+    for suffix in ["", "_v2", "_v3", "_v4", "_latest"]:
+        target = Path(f"AI512_Project/presentation/{base_name}{suffix}.pptx")
+        try:
+            prs.save(target)
+            print(f"Presentation successfully saved to: {target} (Total Slides: {len(prs.slides)})")
+            saved = True
+            break
+        except PermissionError:
+            continue
+    if not saved:
+        import time
+        target = Path(f"AI512_Project/presentation/{base_name}_{int(time.time())}.pptx")
+        prs.save(target)
+        print(f"Presentation successfully saved with timestamp to: {target} (Total Slides: {len(prs.slides)})")
 
 if __name__ == "__main__":
     create_deck()

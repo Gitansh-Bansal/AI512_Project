@@ -564,8 +564,15 @@
           </ul>
         </div>
 
-        <div class="chart-container">
-          <img src="assets/arch_pidnet.png" alt="PIDNet-S Architecture">
+        <div style="display:flex; flex-direction:column; gap:16px">
+          <div class="chart-container" style="padding:10px">
+            <img src="assets/arch_pidnet.png" alt="PIDNet-S Architecture">
+          </div>
+          <div class="card" style="padding:16px">
+            <div style="font-size:12px; font-weight:800; color:var(--accent-emerald); margin-bottom:6px">KEY MODULE HIGHLIGHTS</div>
+            <p style="font-size:12px; margin-bottom:6px"><strong>• PAG (Pixel-Attention Guided Fusion):</strong> Generates pixel-wise attention coefficients from the I-branch to selectively inject contextual semantics into high-res P-features.</p>
+            <p style="font-size:12px"><strong>• PAP (Pixel-Attention Processing / BDF):</strong> The Boundary (D) map directly guides the final aggregation of Detail and Context features, suppressing boundary bleeding in unlit areas.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -587,8 +594,15 @@
           </ul>
         </div>
 
-        <div class="chart-container">
-          <img src="assets/arch_ddrnet.png" alt="DDRNet-23-slim Architecture">
+        <div style="display:flex; flex-direction:column; gap:16px">
+          <div class="chart-container" style="padding:10px">
+            <img src="assets/arch_ddrnet.png" alt="DDRNet-23-slim Architecture">
+          </div>
+          <div class="card" style="padding:16px">
+            <div style="font-size:12px; font-weight:800; color:var(--accent-amber); margin-bottom:6px">KEY MODULE HIGHLIGHTS</div>
+            <p style="font-size:12px; margin-bottom:6px"><strong>• Bilateral Information Exchange:</strong> Spatial detail branch (H/8) never downsamples past 1/8, avoiding the small dark object loss seen in 1/32 architectures.</p>
+            <p style="font-size:12px"><strong>• DAPPM Module:</strong> 5 pooling branches (k=1, 2, 3, 6) with hierarchical recursive fusion provide wide receptive fields to overcome local headlight glare blooms.</p>
+          </div>
         </div>
       </div>
     </div>

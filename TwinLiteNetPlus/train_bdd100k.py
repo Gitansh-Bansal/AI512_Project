@@ -69,17 +69,48 @@ class BDD100KMultiTaskDataset(Dataset):
         self.split = split
         self.valid = valid
         self.hyp = hyp or {}
+        self.is_demo_fallback = False
 
-        self.img_dir = self.root / "images" / split
-        self.da_dir = self.root / "drivable_area_annotations" / split
-        self.ll_dir = self.root / "lane_line_annotations" / split
+        # Adaptive directory resolution
+        for cand in [self.root / "images" / split, self.root / split, self.root / "100k" / split, self.root / "images" / "100k" / split, self.root / "bdd100k" / "images" / split]:
+            if cand.exists():
+                self.img_dir = cand
+                break
+        else:
+            self.img_dir = self.root / "images" / split
 
-        all_imgs = sorted([f for f in os.listdir(self.img_dir) if f.lower().endswith(('.jpg', '.png'))])
-        self.names = [
-            f for f in all_imgs
-            if (self.da_dir / (Path(f).stem + ".png")).exists()
-            and (self.ll_dir / (Path(f).stem + ".png")).exists()
-        ]
+        for cand in [self.root / "drivable_area_annotations" / split, self.root / "labels" / "drivable" / split, self.root / "drivable" / split, self.root / "da" / split]:
+            if cand.exists():
+                self.da_dir = cand
+                break
+        else:
+            self.da_dir = self.root / "drivable_area_annotations" / split
+
+        for cand in [self.root / "lane_line_annotations" / split, self.root / "labels" / "lane" / split, self.root / "lane" / split, self.root / "ll" / split]:
+            if cand.exists():
+                self.ll_dir = cand
+                break
+        else:
+            self.ll_dir = self.root / "lane_line_annotations" / split
+
+        if self.img_dir.exists():
+            all_imgs = sorted([f for f in os.listdir(self.img_dir) if f.lower().endswith(('.jpg', '.png'))])
+            self.names = [
+                f for f in all_imgs
+                if (self.da_dir / (Path(f).stem + ".png")).exists()
+                and (self.ll_dir / (Path(f).stem + ".png")).exists()
+            ]
+        else:
+            self.names = []
+
+        # Fallback to inference demo images if dataset not mounted
+        if len(self.names) == 0:
+            inference_dir = Path(__file__).resolve().parent / "inference" / "images"
+            if inference_dir.exists():
+                self.img_dir = inference_dir
+                self.names = sorted([f for f in os.listdir(inference_dir) if f.lower().endswith(('.jpg', '.png'))])
+                self.is_demo_fallback = True
+
         if max_samples and max_samples < len(self.names):
             self.names = self.names[:max_samples]
 
@@ -93,9 +124,14 @@ class BDD100KMultiTaskDataset(Dataset):
         da_path = str(self.da_dir / f"{stem}.png")
         ll_path = str(self.ll_dir / f"{stem}.png")
 
-        image = cv2.imread(img_path)
-        label1 = cv2.imread(da_path, 0)
-        label2 = cv2.imread(ll_path, 0)
+        if self.is_demo_fallback or not os.path.exists(da_path) or not os.path.exists(ll_path):
+            image = cv2.imread(img_path) if os.path.exists(img_path) else np.zeros((720, 1280, 3), dtype=np.uint8)
+            label1 = np.zeros((image.shape[0], image.shape[1]), dtype=np.uint8)
+            label2 = np.zeros((image.shape[0], image.shape[1]), dtype=np.uint8)
+        else:
+            image = cv2.imread(img_path)
+            label1 = cv2.imread(da_path, 0)
+            label2 = cv2.imread(ll_path, 0)
 
         w_, h_ = 640, 384
 

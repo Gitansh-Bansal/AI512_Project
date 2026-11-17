@@ -28,20 +28,18 @@ We explore two foundational paradigms for overcoming nighttime degradation witho
 
 ```plaintext
 AI512_Project/
-├── notebooks/                              # Clean, production-ready execution templates
-│   ├── 01_exploration/                     # Exploratory Data Analysis & statistics
-│   │   └── task2_nightcity_exploration.ipynb
-│   ├── 02_paper_reproductions/             # Original benchmark validations (CamVid / BDD100K)
+├── notebooks_without_results/                  # Clean, production-ready execution templates
+│   ├── 01_exploration/                         # Exploratory Data Analysis & statistics
+│   │   └── task2_nightcity_dataset exploration.ipynb
+│   ├── 02_paper_reproductions/                 # Original benchmark validations (CamVid / BDD100K)
 │   │   ├── task3_pidnet_camvid_reproduction.ipynb
 │   │   ├── task3_ddrnet_camvid_reproduction.ipynb
 │   │   └── task3_twinlitenetplus_bdd100k_reproduction.ipynb
-│   ├── 03_nightcity_baselines/              # Standard NightCity baselines
+│   ├── 03_nightcity_baselines/                 # Standard NightCity baselines
 │   │   ├── task3_pidnet_nightcity_baseline.ipynb
 │   │   ├── task3_ddrnet_nightcity_baseline.ipynb
 │   │   └── task3_twinlitenetplus_nightcity_baseline.ipynb
-│   ├── 04_option1_exposure_aware/          # Dual-domain exposure guidance
-│   │   └── task6_pidnet_exposure_aware.ipynb
-│   └── 05_option2_knowledge_distillation/  # Standard & Enhanced SegFormer distillation
+│   └── 04_knowledge_distillation/              # Standard & Enhanced SegFormer distillation
 │       ├── task7_pidnet_knowledge_distillation.ipynb
 │       ├── task7_pidnet_knowledge_distillation_enhanced.ipynb
 │       ├── task8_ddrnet_knowledge_distillation.ipynb
@@ -49,25 +47,23 @@ AI512_Project/
 │       ├── task9_twinlite_knowledge_distillation.ipynb
 │       └── task9_twinlite_knowledge_distillation_enhanced.ipynb
 │
-├── results/                                # Execution outputs, logs & trained states
-│   └── trained_notebooks/                  # Preserved fully-executed Kaggle notebooks
-│       ├── task3_pidnet_nightcity_baseline_trained.ipynb
-│       ├── task3_ddrnet_nightcity_baseline_trained.ipynb
-│       ├── task7_pidnet_segformer_distillation_trained.ipynb
-│       ├── task8_ddrnet_segformer_distillation_trained.ipynb
-│       └── task9_twinlitenetplus_segformer_distillation_trained.ipynb
+├── notebooks_with_results/                     # Execution outputs, logs & trained states
+│   ├── 01_exploration/                         # Executed EDA notebook
+│   ├── 03_nightcity_baselines/                 # Executed baseline notebooks (PIDNet, DDRNet)
+│   ├── 04_knowledge_distillation/              # Executed distillation notebooks (PIDNet, DDRNet, TwinLite)
+│   └── 05_knoledge_distillation_enhanced/      # Executed enhanced distillation notebooks
 │
-├── reports/                                # Academic reports, surveys & ablation analyses
+├── reports/                                    # Academic reports, surveys & ablation analyses
 │   ├── baseline_results_report.md
 │   ├── failure_analysis_report.md
 │   ├── hyperparameter_tuning_report.md
 │   ├── nighttime_semantic_segmentation_literature_review.md
 │   └── paper_reproduction_and_project_findings_report.md
 │
-├── PIDNet/                                 # PIDNet-S implementation & training pipelines
-├── DDRNet/                                 # DDRNet-23-slim implementation & training pipelines
-├── TwinLiteNetPlus/                        # TwinLiteNetPlus implementation & training pipelines
-└── Data/                                   # Local dataset mount point (or auto-found on Kaggle)
+├── PIDNet/                                     # PIDNet-S implementation & training pipelines
+├── DDRNet/                                     # DDRNet-23-slim implementation & training pipelines
+├── TwinLiteNetPlus/                            # TwinLiteNetPlus implementation & training pipelines
+└── Data/                                       # Local dataset mount point (or auto-found on Kaggle)
 ```
 
 ---
@@ -77,15 +73,14 @@ AI512_Project/
 | Task | Scope & Objective | Primary Notebook | Implementation Scripts |
 | :--- | :--- | :--- | :--- |
 | **Task 1** | Literature Review on Nighttime Segmentation | — | [`reports/nighttime_semantic_segmentation_literature_review.md`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/reports/nighttime_semantic_segmentation_literature_review.md) |
-| **Task 2** | NightCity Exploratory Data Analysis (EDA) | [`notebooks/01_exploration/task2_nightcity_exploration.ipynb`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/01_exploration/task2_nightcity_exploration.ipynb) | [`datasets/nightcity.py`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/PIDNet/datasets/nightcity.py) |
-| **Task 3** | Paper Reproductions (CamVid & BDD100K) | [`notebooks/02_paper_reproductions/`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/02_paper_reproductions/) | `train_camvid.py`, `train_bdd100k.py` |
-| **Task 3** | Baseline Training on NightCity (All 3 Models) | [`notebooks/03_nightcity_baselines/`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/03_nightcity_baselines/) | `train_nightcity.py` (across all 3 repos) |
+| **Task 2** | NightCity Exploratory Data Analysis (EDA) | [`notebooks_without_results/01_exploration/task2_nightcity_dataset exploration.ipynb`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks_without_results/01_exploration/task2_nightcity_dataset%20exploration.ipynb) | [`datasets/nightcity.py`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/PIDNet/datasets/nightcity.py) |
+| **Task 3** | Paper Reproductions (CamVid & BDD100K) | [`notebooks_without_results/02_paper_reproductions/`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks_without_results/02_paper_reproductions/) | `train_camvid.py`, `train_bdd100k.py` |
+| **Task 3** | Baseline Training on NightCity (All 3 Models) | [`notebooks_without_results/03_nightcity_baselines/`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks_without_results/03_nightcity_baselines/) | `train_nightcity.py` (across all 3 repos) |
 | **Task 4** | Failure Analysis of Nocturnal Degradation | — | [`reports/failure_analysis_report.md`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/reports/failure_analysis_report.md) |
 | **Task 5** | Hyperparameter Tuning & Ablation Studies | — | [`reports/hyperparameter_tuning_report.md`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/reports/hyperparameter_tuning_report.md) |
-| **Task 6** | Option 1: Exposure-Aware PIDNet | [`notebooks/04_option1_exposure_aware/task6_pidnet_exposure_aware.ipynb`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/04_option1_exposure_aware/task6_pidnet_exposure_aware.ipynb) | `PIDNet/models/pidnet_exposure.py`, `PIDNet/train_exposure.py` |
-| **Task 7** | Option 2: PIDNet-S Distillation (Standard & Enhanced) | [`task7_pidnet_knowledge_distillation.ipynb`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/05_option2_knowledge_distillation/task7_pidnet_knowledge_distillation.ipynb) & [`enhanced`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/05_option2_knowledge_distillation/task7_pidnet_knowledge_distillation_enhanced.ipynb) | `PIDNet/train_distillation.py`, `PIDNet/distillation/` |
-| **Task 8** | Option 2: DDRNet-23-slim Distillation (Standard & Enhanced) | [`task8_ddrnet_knowledge_distillation.ipynb`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/05_option2_knowledge_distillation/task8_ddrnet_knowledge_distillation.ipynb) & [`enhanced`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/05_option2_knowledge_distillation/task8_ddrnet_knowledge_distillation_enhanced.ipynb) | `DDRNet/train_distillation.py`, `DDRNet/distillation/` |
-| **Task 9** | Option 2: TwinLiteNetPlus Distillation (Standard & Enhanced) | [`task9_twinlite_knowledge_distillation.ipynb`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/05_option2_knowledge_distillation/task9_twinlite_knowledge_distillation.ipynb) & [`enhanced`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks/05_option2_knowledge_distillation/task9_twinlite_knowledge_distillation_enhanced.ipynb) | `TwinLiteNetPlus/train_distillation.py` |
+| **Task 7** | Option 2: PIDNet-S Distillation (Standard & Enhanced) | [`task7_pidnet_knowledge_distillation.ipynb`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks_without_results/04_knowledge_distillation/task7_pidnet_knowledge_distillation.ipynb) & [`enhanced`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks_without_results/04_knowledge_distillation/task7_pidnet_knowledge_distillation_enhanced.ipynb) | `PIDNet/train_distillation.py`, `PIDNet/distillation/` |
+| **Task 8** | Option 2: DDRNet-23-slim Distillation (Standard & Enhanced) | [`task8_ddrnet_knowledge_distillation.ipynb`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks_without_results/04_knowledge_distillation/task8_ddrnet_knowledge_distillation.ipynb) & [`enhanced`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks_without_results/04_knowledge_distillation/task8_ddrnet_knowledge_distillation_enhanced.ipynb) | `DDRNet/train_distillation.py`, `DDRNet/distillation/` |
+| **Task 9** | Option 2: TwinLiteNetPlus Distillation (Standard & Enhanced) | [`task9_twinlite_knowledge_distillation.ipynb`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks_without_results/04_knowledge_distillation/task9_twinlite_knowledge_distillation.ipynb) & [`enhanced`](file:///c:/Users/gitan/Desktop/AI%20Project/AI512_Project/notebooks_without_results/04_knowledge_distillation/task9_twinlite_knowledge_distillation_enhanced.ipynb) | `TwinLiteNetPlus/train_distillation.py` |
 
 ---
 
@@ -123,7 +118,7 @@ All notebooks are designed to be **path-invariant** and **zero-configuration**:
 - In local environments, they automatically climb parent directories to discover the repo root and dataset root.
 
 ### 1. Running on Kaggle
-1. Upload any notebook from `notebooks/` to Kaggle.
+1. Upload any notebook from `notebooks_without_results/` to Kaggle.
 2. Attach the NightCity dataset (or search `datasets/gitanshb/nightcity`).
 3. Set Accelerator to **GPU P100** or **GPU T4 x2**.
 4. Click **Run All**. The notebook will install dependencies, resolve paths, and train/evaluate automatically.

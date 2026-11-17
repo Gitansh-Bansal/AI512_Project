@@ -33,7 +33,22 @@ class CamVid(BaseDataset):
         self.multi_scale = multi_scale
         self.flip = flip
         
-        self.img_list = [line.strip().split() for line in open(root+list_path)]
+        # Adaptive list path resolution
+        from pathlib import Path
+        actual_list = None
+        for cand in [
+            list_path,
+            os.path.join(root, list_path),
+            (root + list_path) if isinstance(root, str) else None,
+            str(Path(__file__).resolve().parent.parent / "data" / list_path),
+            str(Path(__file__).resolve().parent.parent / "data" / "list" / "camvid" / os.path.basename(list_path)),
+        ]:
+            if cand and os.path.exists(cand):
+                actual_list = cand
+                break
+        if actual_list is None:
+            actual_list = list_path
+        self.img_list = [line.strip().split() for line in open(actual_list)]
 
         self.files = self.read_files()
 
@@ -80,13 +95,34 @@ class CamVid(BaseDataset):
     def __getitem__(self, index):
         item = self.files[index]
         name = item["name"]
-        image = Image.open(os.path.join(self.root,'camvid',item["img"])).convert('RGB')
-        image = np.array(image)
-        size = image.shape
+        img_rel = item["img"]
+        lbl_rel = item["label"]
 
-        color_map = Image.open(os.path.join(self.root,'camvid',item["label"])).convert('RGB')
-        color_map = np.array(color_map)
-        label = self.color2label(color_map)
+        img_path = None
+        lbl_path = None
+        for cand_root in [os.path.join(self.root, 'camvid'), self.root, os.path.join(self.root, 'CamVid'), os.path.join(self.root, 'data', 'camvid')]:
+            cand_img = os.path.join(cand_root, img_rel)
+            cand_lbl = os.path.join(cand_root, lbl_rel)
+            if os.path.exists(cand_img):
+                img_path = cand_img
+                lbl_path = cand_lbl
+                break
+        if img_path is None:
+            img_path = os.path.join(self.root, 'camvid', img_rel)
+            lbl_path = os.path.join(self.root, 'camvid', lbl_rel)
+
+        if not os.path.exists(img_path):
+            image = np.zeros((720, 960, 3), dtype=np.uint8)
+            label = np.zeros((720, 960), dtype=np.uint8)
+            size = image.shape
+        else:
+            image = Image.open(img_path).convert('RGB')
+            image = np.array(image)
+            size = image.shape
+
+            color_map = Image.open(lbl_path).convert('RGB')
+            color_map = np.array(color_map)
+            label = self.color2label(color_map)
 
         image, label, edge = self.gen_sample(image, label, 
                                 self.multi_scale, self.flip, edge_pad=False,

@@ -42,6 +42,8 @@ class CamVid(BaseDataset):
             (root + list_path) if isinstance(root, str) else None,
             str(Path(__file__).resolve().parent.parent / "data" / list_path),
             str(Path(__file__).resolve().parent.parent / "data" / "list" / "camvid" / os.path.basename(list_path)),
+            str(Path(__file__).resolve().parent.parent.parent / "PIDNet" / "data" / "list" / "camvid" / os.path.basename(list_path)),
+            str(Path(__file__).resolve().parent.parent.parent / "DDRNet" / "data" / "list" / "camvid" / os.path.basename(list_path)),
         ]:
             if cand and os.path.exists(cand):
                 actual_list = cand
@@ -51,6 +53,14 @@ class CamVid(BaseDataset):
         self.img_list = [line.strip().split() for line in open(actual_list)]
 
         self.files = self.read_files()
+
+        # Build in-memory index of all image and label files under root for instant resolution
+        self.image_cache = {}
+        if self.root and os.path.exists(self.root):
+            for r, dirs, filenames in os.walk(self.root):
+                for f in filenames:
+                    if f.lower().endswith(('.png', '.jpg', '.jpeg')):
+                        self.image_cache[f] = os.path.join(r, f)
 
 
         self.ignore_label = ignore_label
@@ -98,20 +108,36 @@ class CamVid(BaseDataset):
         img_rel = item["img"]
         lbl_rel = item["label"]
 
-        img_path = None
-        lbl_path = None
-        for cand_root in [os.path.join(self.root, 'camvid'), self.root, os.path.join(self.root, 'CamVid'), os.path.join(self.root, 'data', 'camvid')]:
-            cand_img = os.path.join(cand_root, img_rel)
-            cand_lbl = os.path.join(cand_root, lbl_rel)
-            if os.path.exists(cand_img):
-                img_path = cand_img
-                lbl_path = cand_lbl
-                break
-        if img_path is None:
-            img_path = os.path.join(self.root, 'camvid', img_rel)
-            lbl_path = os.path.join(self.root, 'camvid', lbl_rel)
+        img_name = os.path.basename(img_rel)
+        lbl_name = os.path.basename(lbl_rel)
 
-        if not os.path.exists(img_path):
+        img_path = self.image_cache.get(img_name)
+        lbl_path = self.image_cache.get(lbl_name)
+
+        # Fallback check across common directory candidates if not in cache
+        if img_path is None or not os.path.exists(img_path):
+            for cand_root in [
+                os.path.join(self.root, 'camvid'), self.root, os.path.join(self.root, 'CamVid'),
+                os.path.join(self.root, 'train'), os.path.join(self.root, 'val'), os.path.join(self.root, 'test'),
+                os.path.join(self.root, 'CamVid', 'train'), os.path.join(self.root, 'CamVid', 'val'), os.path.join(self.root, 'CamVid', 'test'),
+            ]:
+                cand_img = os.path.join(cand_root, img_rel) if os.path.exists(os.path.join(cand_root, img_rel)) else os.path.join(cand_root, img_name)
+                if os.path.exists(cand_img):
+                    img_path = cand_img
+                    break
+
+        if lbl_path is None or not os.path.exists(lbl_path):
+            for cand_root in [
+                os.path.join(self.root, 'camvid'), self.root, os.path.join(self.root, 'CamVid'),
+                os.path.join(self.root, 'train_labels'), os.path.join(self.root, 'val_labels'), os.path.join(self.root, 'test_labels'),
+                os.path.join(self.root, 'CamVid', 'train_labels'), os.path.join(self.root, 'CamVid', 'val_labels'), os.path.join(self.root, 'CamVid', 'test_labels'),
+            ]:
+                cand_lbl = os.path.join(cand_root, lbl_rel) if os.path.exists(os.path.join(cand_root, lbl_rel)) else os.path.join(cand_root, lbl_name)
+                if os.path.exists(cand_lbl):
+                    lbl_path = cand_lbl
+                    break
+
+        if img_path is None or not os.path.exists(img_path):
             image = np.zeros((720, 960, 3), dtype=np.uint8)
             label = np.zeros((720, 960), dtype=np.uint8)
             size = image.shape
@@ -120,9 +146,12 @@ class CamVid(BaseDataset):
             image = np.array(image)
             size = image.shape
 
-            color_map = Image.open(lbl_path).convert('RGB')
-            color_map = np.array(color_map)
-            label = self.color2label(color_map)
+            if lbl_path and os.path.exists(lbl_path):
+                color_map = Image.open(lbl_path).convert('RGB')
+                color_map = np.array(color_map)
+                label = self.color2label(color_map)
+            else:
+                label = np.zeros((image.shape[0], image.shape[1]), dtype=np.uint8)
 
         image, label, edge = self.gen_sample(image, label, 
                                 self.multi_scale, self.flip, edge_pad=False,

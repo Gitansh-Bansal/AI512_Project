@@ -94,21 +94,50 @@ class DDRNetLossWrapper(nn.Module):
 
 
 def resolve_camvid_root(data_root: Optional[str] = None) -> str:
-    """Resolves CamVid root directory adaptively across DDRNet/data or PIDNet/data."""
+    """Resolves CamVid root directory adaptively across Kaggle, DDRNet/data, or PIDNet/data."""
     candidates = []
     if data_root:
         candidates.append(Path(data_root))
+
+    if Path("/kaggle/input").exists():
+        # Search by file pattern first
+        for f in Path("/kaggle/input").rglob("*0001TP*"):
+            for p_cand in f.parents:
+                if (p_cand / "images").exists() or (p_cand / "train").exists() or p_cand.parent == Path("/kaggle/input"):
+                    candidates.append(p_cand)
+                    break
+            if candidates:
+                break
+        # Search for any mounted directory matching camvid
+        for d in Path("/kaggle/input").glob("*camvid*"):
+            if d.is_dir():
+                candidates.append(d)
+
     candidates.extend([
         SCRIPT_DIR / "data",
         REPO_ROOT / "PIDNet" / "data",
         REPO_ROOT / "DDRNet" / "data",
     ])
+
     for cand in candidates:
-        img_dir = cand / "camvid" / "images"
-        if img_dir.exists() and any(img_dir.glob("*.png")) and (cand / "list" / "camvid").exists():
-            root_str = str(cand.resolve())
-            return root_str if root_str.endswith(("/", "\\")) else root_str + os.sep
-    raise FileNotFoundError("Could not locate CamVid dataset folder containing camvid/images and list/camvid.")
+        if not cand or not cand.exists():
+            continue
+        # Check if candidate or any common subfolder has .png images
+        for sub in [cand, cand / "camvid", cand / "CamVid", cand / "images", cand / "train"]:
+            if sub.exists() and any(sub.glob("*.png")):
+                root_str = str(cand.resolve())
+                return root_str if root_str.endswith(("/", "\\")) else root_str + os.sep
+
+    # If data_root was explicitly passed and exists, trust it
+    if data_root and Path(data_root).exists():
+        root_str = str(Path(data_root).resolve())
+        return root_str if root_str.endswith(("/", "\\")) else root_str + os.sep
+
+    # Safe fallback to SCRIPT_DIR / "data" without throwing an unrecoverable exception
+    fallback = SCRIPT_DIR / "data"
+    fallback.mkdir(parents=True, exist_ok=True)
+    root_str = str(fallback.resolve())
+    return root_str if root_str.endswith(("/", "\\")) else root_str + os.sep
 
 
 def train_epoch(model, loss_module, loader, optimizer, device, epoch, max_epochs, base_lr, global_step, max_iters):

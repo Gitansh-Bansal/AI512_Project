@@ -478,8 +478,37 @@ def create_deck():
         p_val.font.size = Pt(9)
         p_val.font.color.rgb = C_WHITE
 
+    # Right: Diagram & Technical Callout
     if (assets_dir / "arch_twinlite.png").exists():
-        s7.shapes.add_picture(str(assets_dir / "arch_twinlite.png"), Inches(6.6), Inches(1.65), width=Inches(5.933))
+        s7.shapes.add_picture(str(assets_dir / "arch_twinlite.png"), Inches(6.6), Inches(1.8), width=Inches(5.933))
+
+        # Companion callout box below diagram
+        box_c7 = s7.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.6), Inches(4.2), Inches(5.933), Inches(2.6))
+        box_c7.fill.solid()
+        box_c7.fill.fore_color.rgb = C_CARD
+        box_c7.line.color.rgb = C_CARD_BORDER
+
+        tb_c7 = s7.shapes.add_textbox(Inches(6.85), Inches(4.35), Inches(5.433), Inches(2.3))
+        tf_c7 = tb_c7.text_frame
+        tf_c7.word_wrap = True
+
+        p = tf_c7.paragraphs[0]
+        p.text = "KEY MODULE HIGHLIGHTS (TwinLiteNet+)"
+        p.font.size = Pt(11)
+        p.font.bold = True
+        p.font.color.rgb = C_PINK
+
+        p = tf_c7.add_paragraph()
+        p.text = "• ESPNet Dilated Blocks: Parallel dilated branches (d=1, 2, 4, 8) with hierarchical sum achieve 9x parameter reduction while capturing multi-scale road context."
+        p.font.size = Pt(9.5)
+        p.font.color.rgb = C_WHITE
+        p.space_before = Pt(4)
+
+        p = tf_c7.add_paragraph()
+        p.text = "• CAAM Channel Attention: Global pooling and dynamic sigmoid gating recalibrate feature channels, boosting under-exposed nocturnal signals in real-time."
+        p.font.size = Pt(9.5)
+        p.font.color.rgb = C_WHITE
+        p.space_before = Pt(4)
 
     set_notes(s7, "Slide 7 introduces TwinLiteNet+, representing the ultra-lightweight end of the spectrum. Utilizing depthwise separable convolutions, hierarchical dilated ESPNet blocks, and CAAM channel attention, it operates at a blistering 238 FPS with only 0.47M parameters. It allowed us to test the lower capacity boundary of real-time edge networks on 19 nighttime classes.")
 
@@ -523,8 +552,37 @@ def create_deck():
         p_val.font.size = Pt(9)
         p_val.font.color.rgb = C_WHITE
 
+    # Right: Diagram & Technical Callout
     if (assets_dir / "arch_segformer.png").exists():
-        s8.shapes.add_picture(str(assets_dir / "arch_segformer.png"), Inches(6.6), Inches(1.65), width=Inches(5.933))
+        s8.shapes.add_picture(str(assets_dir / "arch_segformer.png"), Inches(6.6), Inches(1.8), width=Inches(5.933))
+
+        # Companion callout box below diagram
+        box_c8 = s8.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.6), Inches(4.2), Inches(5.933), Inches(2.6))
+        box_c8.fill.solid()
+        box_c8.fill.fore_color.rgb = C_CARD
+        box_c8.line.color.rgb = C_CARD_BORDER
+
+        tb_c8 = s8.shapes.add_textbox(Inches(6.85), Inches(4.35), Inches(5.433), Inches(2.3))
+        tf_c8 = tb_c8.text_frame
+        tf_c8.word_wrap = True
+
+        p = tf_c8.paragraphs[0]
+        p.text = "KEY MODULE HIGHLIGHTS (SegFormer-B2)"
+        p.font.size = Pt(11)
+        p.font.bold = True
+        p.font.color.rgb = C_PURPLE
+
+        p = tf_c8.add_paragraph()
+        p.text = "• Overlapped Patch Merging: Preserves boundary continuity between image patches, preventing edge-tearing artifacts in low-light conditions."
+        p.font.size = Pt(9.5)
+        p.font.color.rgb = C_WHITE
+        p.space_before = Pt(4)
+
+        p = tf_c8.add_paragraph()
+        p.text = "• Global Self-Attention & Mix-FFN: Provides unbounded receptive field to link distant streetlights to dark road surfaces, eliminating blackout collapse."
+        p.font.size = Pt(9.5)
+        p.font.color.rgb = C_WHITE
+        p.space_before = Pt(4)
 
     set_notes(s8, "Slide 8 presents our teacher model: SegFormer-B2. SegFormer uses a hierarchical Mix Transformer encoder with overlapped patch merging and efficient spatial-reduction attention. It eliminates fixed positional embeddings, making it robust to dark scene distortions. Fine-tuned to 49.54% mIoU on NightCity, it provides the rich contextual supervision needed to guide our compact students.")
 

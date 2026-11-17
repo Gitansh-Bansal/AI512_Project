@@ -624,8 +624,15 @@
           </ul>
         </div>
 
-        <div class="chart-container">
-          <img src="assets/arch_twinlite.png" alt="TwinLiteNet+ Architecture">
+        <div style="display:flex; flex-direction:column; gap:16px">
+          <div class="chart-container" style="padding:10px">
+            <img src="assets/arch_twinlite.png" alt="TwinLiteNet+ Architecture">
+          </div>
+          <div class="card" style="padding:16px">
+            <div style="font-size:12px; font-weight:800; color:var(--accent-purple); margin-bottom:6px">KEY MODULE HIGHLIGHTS</div>
+            <p style="font-size:12px; margin-bottom:6px"><strong>• ESPNet Dilated Blocks:</strong> Parallel dilated branches (d=1, 2, 4, 8) with hierarchical sum achieve 9x parameter reduction while capturing multi-scale road context.</p>
+            <p style="font-size:12px"><strong>• CAAM Channel Attention:</strong> Global pooling and dynamic sigmoid gating recalibrate feature channels, boosting under-exposed nocturnal signals in real-time.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -647,13 +654,20 @@
           </ul>
         </div>
 
-        <div class="chart-container">
-          <img src="assets/arch_segformer.png" alt="SegFormer-B2 Architecture">
+        <div style="display:flex; flex-direction:column; gap:16px">
+          <div class="chart-container" style="padding:10px">
+            <img src="assets/arch_segformer.png" alt="SegFormer-B2 Architecture">
+          </div>
+          <div class="card" style="padding:16px">
+            <div style="font-size:12px; font-weight:800; color:var(--accent-cyan); margin-bottom:6px">KEY MODULE HIGHLIGHTS</div>
+            <p style="font-size:12px; margin-bottom:6px"><strong>• Overlapped Patch Merging:</strong> Preserves boundary continuity between image patches, preventing edge-tearing artifacts in low-light conditions.</p>
+            <p style="font-size:12px"><strong>• Global Self-Attention & Mix-FFN:</strong> Provides unbounded receptive field to link distant streetlights to dark road surfaces, eliminating blackout collapse.</p>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- SLIDE 6: Knowledge Distillation Paradigm (Why SegFormer-B2?) -->
+    <!-- SLIDE 9: Knowledge Distillation Paradigm (Why SegFormer-B2?) -->
     <div class="slide" data-notes="Slide 6 explains our core methodology: why use a Vision Transformer teacher? Standard CNNs rely on local 3x3 kernels. When an area is completely black, local pixels contain zero structural cues. Transformers, however, use global self-attention to link distant streetlights with unlit road surfaces. Distillation transfers this global understanding into our fast CNNs without any runtime penalty during vehicle operation.">
       <div class="slide-tag">Methodology & Design</div>
       <div class="slide-title">Why SegFormer-B2 as Teacher? Global Context for Dark Scenes</div>

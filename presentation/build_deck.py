@@ -12,31 +12,30 @@ def create_deck():
     prs = Presentation()
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
-    blank_layout = prs.slide_layouts[6]  # completely blank
+    blank_layout = prs.slide_layouts[6]
 
     # Color definitions
-    C_BG = RGBColor(11, 17, 32)       # #0B1120 Deep Obsidian
-    C_CARD = RGBColor(30, 41, 59)     # #1E293B Slate 800
+    C_BG = RGBColor(11, 17, 32)          # #0B1120 Deep Obsidian
+    C_CARD = RGBColor(30, 41, 59)        # #1E293B Slate 800
     C_CARD_BORDER = RGBColor(51, 65, 85) # #334155
-    C_WHITE = RGBColor(248, 250, 252) # #F8FAFC
-    C_MUTED = RGBColor(148, 163, 184) # #94A3B8
-    C_CYAN = RGBColor(56, 189, 248)   # #38BDF8
-    C_EMERALD = RGBColor(16, 185, 129)# #10B981
-    C_AMBER = RGBColor(245, 158, 11)  # #F59E0B
-    C_PURPLE = RGBColor(168, 85, 247) # #A855F7
-    C_RED = RGBColor(239, 68, 68)     # #EF4444
+    C_WHITE = RGBColor(248, 250, 252)    # #F8FAFC
+    C_MUTED = RGBColor(148, 163, 184)    # #94A3B8
+    C_CYAN = RGBColor(56, 189, 248)      # #38BDF8
+    C_EMERALD = RGBColor(16, 185, 129)   # #10B981
+    C_AMBER = RGBColor(245, 158, 11)     # #F59E0B
+    C_PURPLE = RGBColor(168, 85, 247)    # #A855F7
+    C_PINK = RGBColor(236, 72, 153)      # #EC4899
+    C_RED = RGBColor(239, 68, 68)        # #EF4444
 
     assets_dir = Path("AI512_Project/presentation/assets")
 
     def add_header(slide, tag_text, title_text):
-        # Background
         bg = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, Inches(13.333), Inches(7.5))
         bg.fill.solid()
         bg.fill.fore_color.rgb = C_BG
         bg.line.fill.background()
 
-        # Header box
-        header_box = slide.shapes.add_textbox(Inches(0.8), Inches(0.4), Inches(11.733), Inches(0.9))
+        header_box = slide.shapes.add_textbox(Inches(0.8), Inches(0.35), Inches(11.733), Inches(0.95))
         tf = header_box.text_frame
         tf.word_wrap = True
         tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
@@ -49,12 +48,11 @@ def create_deck():
 
         p_title = tf.add_paragraph()
         p_title.text = title_text
-        p_title.font.size = Pt(22)
+        p_title.font.size = Pt(21)
         p_title.font.bold = True
         p_title.font.color.rgb = C_WHITE
         p_title.space_before = Pt(3)
 
-        # Thin divider line
         line = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(1.35), Inches(11.733), Inches(0.02))
         line.fill.solid()
         line.fill.fore_color.rgb = C_CARD_BORDER
@@ -74,14 +72,13 @@ def create_deck():
     bg1.fill.fore_color.rgb = C_BG
     bg1.line.fill.background()
 
-    # Title Card
     tcard = s1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.0), Inches(1.2), Inches(11.333), Inches(5.1))
     tcard.fill.solid()
     tcard.fill.fore_color.rgb = C_CARD
     tcard.line.color.rgb = C_CYAN
     tcard.line.width = Pt(1.5)
 
-    tt_box = s1.shapes.add_textbox(Inches(1.5), Inches(1.6), Inches(10.333), Inches(4.3))
+    tt_box = s1.shapes.add_textbox(Inches(1.5), Inches(1.5), Inches(10.333), Inches(4.5))
     ttf = tt_box.text_frame
     ttf.word_wrap = True
 
@@ -93,23 +90,22 @@ def create_deck():
 
     p = ttf.add_paragraph()
     p.text = "Real-Time Nighttime Semantic Segmentation for Autonomous Driving"
-    p.font.size = Pt(30)
+    p.font.size = Pt(28)
     p.font.bold = True
     p.font.color.rgb = C_WHITE
-    p.space_before = Pt(12)
+    p.space_before = Pt(10)
 
     p = ttf.add_paragraph()
     p.text = "Cross-Architecture Knowledge Distillation from Vision Transformers into High-FPS Automotive Backbones"
-    p.font.size = Pt(15)
+    p.font.size = Pt(14)
     p.font.color.rgb = C_MUTED
-    p.space_before = Pt(8)
+    p.space_before = Pt(6)
 
-    # Badges / Key highlights inside title
     p = ttf.add_paragraph()
     p.text = "• Dataset: NightCity (4,297 scenes, 19 classes)   • Models: PIDNet-S, DDRNet-23-slim, TwinLiteNet+, SegFormer-B2"
     p.font.size = Pt(11)
     p.font.color.rgb = C_AMBER
-    p.space_before = Pt(24)
+    p.space_before = Pt(20)
 
     p = ttf.add_paragraph()
     p.text = "• Core Achievement: 47.79% mIoU @ 92.6 FPS on NVIDIA T4 GPU (+1.63% over baseline with 0ms added latency)"
@@ -126,7 +122,6 @@ def create_deck():
     s2 = prs.slides.add_slide(blank_layout)
     add_header(s2, "Context & Real-World Motivation", "The Nocturnal Perception Crisis in Autonomous Driving")
 
-    # 3 Cards Layout
     cards_data = [
         ("THE SAFETY PARADOX", C_RED, [
             "Over 40% of fatal vehicle crashes happen at night, despite traffic dropping to 25% of daytime levels.",
@@ -147,13 +142,13 @@ def create_deck():
 
     for i, (card_title, accent_color, bullets) in enumerate(cards_data):
         left = Inches(0.8 + i * 4.0)
-        card = s2.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, Inches(1.7), Inches(3.733), Inches(5.1))
+        card = s2.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, Inches(1.65), Inches(3.733), Inches(5.15))
         card.fill.solid()
         card.fill.fore_color.rgb = C_CARD
         card.line.color.rgb = accent_color
         card.line.width = Pt(1.5)
 
-        tb = s2.shapes.add_textbox(left + Inches(0.25), Inches(1.9), Inches(3.233), Inches(4.7))
+        tb = s2.shapes.add_textbox(left + Inches(0.25), Inches(1.85), Inches(3.233), Inches(4.7))
         tf = tb.text_frame
         tf.word_wrap = True
 
@@ -166,7 +161,7 @@ def create_deck():
         for b in bullets:
             p = tf.add_paragraph()
             p.text = f"• {b}"
-            p.font.size = Pt(11)
+            p.font.size = Pt(10.5)
             p.font.color.rgb = C_WHITE
             p.space_before = Pt(10)
 
@@ -178,19 +173,18 @@ def create_deck():
     s3 = prs.slides.add_slide(blank_layout)
     add_header(s3, "Domain Analysis", "Why Nighttime Segmentation is Much Harder Than Daytime")
 
-    # Left: 4 Physics Degradation Factors
-    left_card = s3.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.7), Inches(5.7), Inches(5.1))
+    left_card = s3.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.65), Inches(5.7), Inches(5.15))
     left_card.fill.solid()
     left_card.fill.fore_color.rgb = C_CARD
     left_card.line.color.rgb = C_CARD_BORDER
 
-    ltb = s3.shapes.add_textbox(Inches(1.05), Inches(1.9), Inches(5.2), Inches(4.7))
+    ltb = s3.shapes.add_textbox(Inches(1.05), Inches(1.85), Inches(5.2), Inches(4.7))
     ltf = ltb.text_frame
     ltf.word_wrap = True
 
     p = ltf.paragraphs[0]
     p.text = "PHYSICAL CAUSES OF VISION DEGRADATION"
-    p.font.size = Pt(13)
+    p.font.size = Pt(12.5)
     p.font.bold = True
     p.font.color.rgb = C_CYAN
 
@@ -203,20 +197,19 @@ def create_deck():
     for title, desc in degradations:
         p = ltf.add_paragraph()
         p.text = title
-        p.font.size = Pt(11)
+        p.font.size = Pt(10.5)
         p.font.bold = True
         p.font.color.rgb = C_AMBER
         p.space_before = Pt(8)
 
         p = ltf.add_paragraph()
         p.text = desc
-        p.font.size = Pt(10)
+        p.font.size = Pt(9.5)
         p.font.color.rgb = C_WHITE
         p.space_before = Pt(2)
 
-    # Right: Confusion pairs plot
     if (assets_dir / "confusion_pairs.png").exists():
-        s3.shapes.add_picture(str(assets_dir / "confusion_pairs.png"), Inches(6.8), Inches(1.7), width=Inches(5.733))
+        s3.shapes.add_picture(str(assets_dir / "confusion_pairs.png"), Inches(6.8), Inches(1.65), width=Inches(5.733))
 
     set_notes(s3, "On Slide 3, we break down the physics behind the nocturnal domain gap. Nighttime is not just low daylight. Active light sources create glare blooming, underexposed areas amplify sensor noise, and color signatures completely desaturate. On the right, our failure forensics reveal that 94.6% of dark sky and 91% of dark vegetation collapse into the building class, while 23.8% of road is misclassified as car due to headlight glare.")
 
@@ -226,19 +219,18 @@ def create_deck():
     s4 = prs.slides.add_slide(blank_layout)
     add_header(s4, "Dataset Exploration", "The NightCity Benchmark: Empirical Realities & Challenges")
 
-    # Left Stats Card
-    card_l = s4.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.7), Inches(5.6), Inches(5.1))
+    card_l = s4.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.65), Inches(5.6), Inches(5.15))
     card_l.fill.solid()
     card_l.fill.fore_color.rgb = C_CARD
     card_l.line.color.rgb = C_CARD_BORDER
 
-    tb_l = s4.shapes.add_textbox(Inches(1.05), Inches(1.9), Inches(5.1), Inches(4.7))
+    tb_l = s4.shapes.add_textbox(Inches(1.05), Inches(1.85), Inches(5.1), Inches(4.7))
     tf_l = tb_l.text_frame
     tf_l.word_wrap = True
 
     p = tf_l.paragraphs[0]
     p.text = "DATASET PROFILE & SPLITS"
-    p.font.size = Pt(13)
+    p.font.size = Pt(12.5)
     p.font.bold = True
     p.font.color.rgb = C_CYAN
 
@@ -258,22 +250,21 @@ def create_deck():
         p.space_before = Pt(8)
         p_val = tf_l.add_paragraph()
         p_val.text = f"  {val}"
-        p_val.font.size = Pt(10)
+        p_val.font.size = Pt(9.5)
         p_val.font.color.rgb = C_WHITE
 
-    # Right Card: Factors Affecting Segmentation Results
-    card_r = s4.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.7), Inches(1.7), Inches(5.833), Inches(5.1))
+    card_r = s4.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.7), Inches(1.65), Inches(5.833), Inches(5.15))
     card_r.fill.solid()
     card_r.fill.fore_color.rgb = C_CARD
     card_r.line.color.rgb = C_CARD_BORDER
 
-    tb_r = s4.shapes.add_textbox(Inches(6.95), Inches(1.9), Inches(5.333), Inches(4.7))
+    tb_r = s4.shapes.add_textbox(Inches(6.95), Inches(1.85), Inches(5.333), Inches(4.7))
     tf_r = tb_r.text_frame
     tf_r.word_wrap = True
 
     p = tf_r.paragraphs[0]
     p.text = "CRITICAL FACTORS AFFECTING EXPERIMENTAL RESULTS"
-    p.font.size = Pt(13)
+    p.font.size = Pt(12.5)
     p.font.bold = True
     p.font.color.rgb = C_CYAN
 
@@ -286,186 +277,307 @@ def create_deck():
     for lbl, val in factors:
         p = tf_r.add_paragraph()
         p.text = lbl
-        p.font.size = Pt(11)
+        p.font.size = Pt(10.5)
         p.font.bold = True
         p.font.color.rgb = C_EMERALD
         p.space_before = Pt(8)
         p_val = tf_r.add_paragraph()
         p_val.text = val
-        p_val.font.size = Pt(10)
+        p_val.font.size = Pt(9.5)
         p_val.font.color.rgb = C_WHITE
         p_val.space_before = Pt(2)
 
     set_notes(s4, "Slide 4 summarizes the NightCity benchmark. With 2,998 training and 1,299 validation images across 19 classes, it is the standard benchmark for nocturnal driving. We note four critical empirical factors: heavy class imbalance where tail classes have less than 1% pixels, curbside dissolution without daytime shadows, high intra-class variance due to disparate lighting, and severe edge contrast decay.")
 
     # =========================================================================
-    # SLIDE 5: Architecture Selection (The Student Suite)
+    # SLIDE 5: Model 1 - PIDNet-S
     # =========================================================================
     s5 = prs.slides.add_slide(blank_layout)
-    add_header(s5, "Model Selection", "The Real-Time Student Architecture Suite")
+    add_header(s5, "Model Architecture 1 / 4", "PIDNet-S: Proportional-Integral-Derivative Real-Time Network")
 
-    students = [
-        ("PIDNet-S", "7.63 M Params | 15.8 GFLOPs", C_EMERALD, [
-            "Three-Branch Control Paradigm: Proportional (P) branch preserves spatial detail, Integral (I) aggregates multi-scale context, Derivative (D) tracks high-frequency boundaries.",
-            "Boundary-Guided Fusion (PAG & PAP): Explicitly anchors semantic boundaries to prevent dark-region bleed.",
-            "Why chosen: Best edge-retention architecture; directly combats nocturnal boundary decay."
-        ]),
-        ("DDRNet-23-slim", "5.67 M Params | 14.2 GFLOPs", C_AMBER, [
-            "Deep Dual-Resolution Structure: Continuous bilateral information exchange between high-res and low-res branches.",
-            "Deep Aggregation PPM (DAPPM): Multi-scale contextual pooling with minimal computational overhead.",
-            "Why chosen: Maximum FPS efficiency among standard CNNs (>100 FPS on T4 GPU) with strong multi-scale context."
-        ]),
-        ("TwinLiteNet+", "0.47 M Params | 2.80 GFLOPs", C_PURPLE, [
-            "Depthwise Separable ESPNet: Dilated depthwise convolutions with Channel Attention Modules (CAAM).",
-            "Ultra-Lightweight Edge Profile: Runs at 238 FPS on GPU; tested down to 0.128M parameter variants.",
-            "Why chosen: Evaluates the absolute lower capacity limit of real-time edge networks on 19 nighttime classes."
-        ])
+    # Left: Architecture Details & Highlights
+    card_l5 = s5.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.65), Inches(5.6), Inches(5.15))
+    card_l5.fill.solid()
+    card_l5.fill.fore_color.rgb = C_CARD
+    card_l5.line.color.rgb = C_EMERALD
+    card_l5.line.width = Pt(1.5)
+
+    tb_l5 = s5.shapes.add_textbox(Inches(1.05), Inches(1.8), Inches(5.1), Inches(4.8))
+    tf_l5 = tb_l5.text_frame
+    tf_l5.word_wrap = True
+
+    p = tf_l5.paragraphs[0]
+    p.text = "PIDNet-S ARCHITECTURE & NIGHTTIME RATIONALE"
+    p.font.size = Pt(12)
+    p.font.bold = True
+    p.font.color.rgb = C_EMERALD
+
+    pid_points = [
+        ("Three-Branch Control Paradigm:", "Formulates scene parsing as a feedback control system: P-branch preserves spatial detail (H/4), I-branch aggregates semantics (H/32), and D-branch tracks boundary gradients (H/8)."),
+        ("Explicit Boundary Supervision:", "Trained with dedicated boundary loss (CE + Dice). Anchors semantic boundaries so dark regions don't bleed into adjacent road or sky pixels."),
+        ("Pixel-Attention Guided Fusion (PAG/PAP):", "Selectively modulates contextual feature integration using spatial and boundary attention maps."),
+        ("Hardware Profile & Nighttime Performance:", "7.63M Params | 15.8 GFLOPs | 10.8ms (92.6 FPS on T4 GPU). Baseline: 46.16% mIoU -> Distilled Enhanced: 47.79% mIoU (All-time project high).")
     ]
-
-    for i, (name, specs, color, bullets) in enumerate(students):
-        left = Inches(0.8 + i * 4.0)
-        card = s5.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, Inches(1.7), Inches(3.733), Inches(5.1))
-        card.fill.solid()
-        card.fill.fore_color.rgb = C_CARD
-        card.line.color.rgb = color
-        card.line.width = Pt(1.5)
-
-        tb = s5.shapes.add_textbox(left + Inches(0.25), Inches(1.9), Inches(3.233), Inches(4.7))
-        tf = tb.text_frame
-        tf.word_wrap = True
-
-        p = tf.paragraphs[0]
-        p.text = name
-        p.font.size = Pt(16)
+    for lbl, desc in pid_points:
+        p = tf_l5.add_paragraph()
+        p.text = lbl
+        p.font.size = Pt(10)
         p.font.bold = True
-        p.font.color.rgb = color
+        p.font.color.rgb = C_CYAN
+        p.space_before = Pt(6)
+        p_val = tf_l5.add_paragraph()
+        p_val.text = desc
+        p_val.font.size = Pt(9)
+        p_val.font.color.rgb = C_WHITE
 
-        p_sub = tf.add_paragraph()
-        p_sub.text = specs
-        p_sub.font.size = Pt(10)
-        p_sub.font.bold = True
-        p_sub.font.color.rgb = C_MUTED
-        p_sub.space_before = Pt(2)
+    # Right: Diagram
+    if (assets_dir / "arch_pidnet.png").exists():
+        s5.shapes.add_picture(str(assets_dir / "arch_pidnet.png"), Inches(6.6), Inches(1.65), width=Inches(5.933))
 
-        for b in bullets:
-            p = tf.add_paragraph()
-            p.text = f"• {b}"
-            p.font.size = Pt(10.5)
-            p.font.color.rgb = C_WHITE
-            p.space_before = Pt(10)
-
-    set_notes(s5, "Slide 5 introduces the three student models evaluated in our project. PIDNet-S uses an explicit Derivative boundary branch to prevent dark-region boundary bleed. DDRNet-23-slim uses bilateral feature exchange with a DAPPM module for over 100 FPS throughput. And TwinLiteNet+ represents ultra-compact edge models with just 0.47 million parameters.")
+    set_notes(s5, "Slide 5 examines PIDNet-S in detail. Inspired by classical PID controllers, PIDNet uses three parallel streams: Proportional for high-res detail, Integral for global context, and Derivative for high-frequency boundaries. In nocturnal driving, where curb and vehicle silhouettes vanish into shadows, the explicit Derivative branch acts as an anchor. It delivers 92.6 FPS on a T4 GPU and achieves our project's peak accuracy of 47.79% mIoU.")
 
     # =========================================================================
-    # SLIDE 6: The Distillation Paradigm (Why SegFormer-B2?)
+    # SLIDE 6: Model 2 - DDRNet-23-slim
     # =========================================================================
     s6 = prs.slides.add_slide(blank_layout)
-    add_header(s6, "Knowledge Distillation Paradigm", "Why SegFormer-B2 as Teacher? Global Reasoning for Dark Scenes")
+    add_header(s6, "Model Architecture 2 / 4", "DDRNet-23-slim: Deep Dual-Resolution Bilateral Network")
 
-    # Left Card: The Receptive Field Dilemma
-    card_l6 = s6.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.7), Inches(5.6), Inches(5.1))
+    card_l6 = s6.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.65), Inches(5.6), Inches(5.15))
     card_l6.fill.solid()
     card_l6.fill.fore_color.rgb = C_CARD
-    card_l6.line.color.rgb = C_CARD_BORDER
+    card_l6.line.color.rgb = C_AMBER
+    card_l6.line.width = Pt(1.5)
 
-    tb_l6 = s6.shapes.add_textbox(Inches(1.05), Inches(1.9), Inches(5.1), Inches(4.7))
+    tb_l6 = s6.shapes.add_textbox(Inches(1.05), Inches(1.8), Inches(5.1), Inches(4.8))
     tf_l6 = tb_l6.text_frame
     tf_l6.word_wrap = True
 
     p = tf_l6.paragraphs[0]
-    p.text = "THE RECEPTIVE FIELD DILEMMA IN NIGHT VISION"
-    p.font.size = Pt(13)
+    p.text = "DDRNet-23-slim ARCHITECTURE & NIGHTTIME RATIONALE"
+    p.font.size = Pt(12)
     p.font.bold = True
-    p.font.color.rgb = C_CYAN
+    p.font.color.rgb = C_AMBER
 
-    points_l6 = [
-        ("CNN Local Inductive Bias:", "Standard convolutions look only at neighboring 3x3 patches. In an unlit rural road, local pixels are all near zero [0, 15] RGB. The CNN sees black noise and hallucinates a building."),
-        ("Transformer Global Self-Attention:", "Vision Transformers compute pairwise relationships across the entire image. A distant streetlight or oncoming headlights provides the context needed to infer that a dark patch 500 pixels away is the road plane."),
-        ("The Deployment Paradox:", "SegFormer-B2 (24.2M params) possesses this global reasoning but runs at only 26 FPS on a T4 GPU (38.4ms latency), violating the 30 FPS automotive safety threshold.")
+    ddr_points = [
+        ("Bilateral Dual-Resolution Streams:", "High-resolution stream retains fine spatial features (H/8) without heavy compression; low-resolution stream captures semantic richness (H/32)."),
+        ("Continuous Bilateral Cross-Connections:", "Bidirectional information exchange allows deep semantics to refine spatial features while spatial localization guides low-res representations."),
+        ("Deep Aggregation PPM (DAPPM):", "5 parallel pooling branches (k=1, 2, 3, 6) with hierarchical recursive fusion. Captures huge receptive field across dark scenes with minimal FLOPs."),
+        ("Hardware Profile & Nighttime Performance:", "5.67M Params | 14.2 GFLOPs | 9.4ms (106.4 FPS on T4 GPU). Baseline: 43.51% mIoU -> Distilled: 44.60% mIoU (+1.09% gain). Fastest 19-class model!")
     ]
-    for lbl, desc in points_l6:
+    for lbl, desc in ddr_points:
         p = tf_l6.add_paragraph()
         p.text = lbl
-        p.font.size = Pt(11)
+        p.font.size = Pt(10)
         p.font.bold = True
-        p.font.color.rgb = C_AMBER
-        p.space_before = Pt(8)
+        p.font.color.rgb = C_CYAN
+        p.space_before = Pt(6)
         p_val = tf_l6.add_paragraph()
         p_val.text = desc
-        p_val.font.size = Pt(10)
+        p_val.font.size = Pt(9)
         p_val.font.color.rgb = C_WHITE
 
-    # Right Card: The Cross-Architecture Solution
-    card_r6 = s6.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.7), Inches(1.7), Inches(5.833), Inches(5.1))
-    card_r6.fill.solid()
-    card_r6.fill.fore_color.rgb = C_CARD
-    card_r6.line.color.rgb = C_PURPLE
-    card_r6.line.width = Pt(1.5)
+    if (assets_dir / "arch_ddrnet.png").exists():
+        s6.shapes.add_picture(str(assets_dir / "arch_ddrnet.png"), Inches(6.6), Inches(1.65), width=Inches(5.933))
 
-    tb_r6 = s6.shapes.add_textbox(Inches(6.95), Inches(1.9), Inches(5.333), Inches(4.7))
-    tf_r6 = tb_r6.text_frame
-    tf_r6.word_wrap = True
+    set_notes(s6, "Slide 6 details DDRNet-23-slim. It uses bilateral dual-resolution streams with continuous bidirectional feature exchange. The Deep Aggregation Pyramid Pooling Module (DAPPM) extracts large multi-scale context, helping the model see past local headlight glare blooms. With 106.4 FPS throughput and 44.60% distilled mIoU, it is the fastest 19-class network evaluated.")
 
-    p = tf_r6.paragraphs[0]
-    p.text = "CROSS-ARCHITECTURE DISTILLATION MECHANISM"
-    p.font.size = Pt(13)
+    # =========================================================================
+    # SLIDE 7: Model 3 - TwinLiteNet+
+    # =========================================================================
+    s7 = prs.slides.add_slide(blank_layout)
+    add_header(s7, "Model Architecture 3 / 4", "TwinLiteNet+: Ultra-Lightweight Depthwise Architecture")
+
+    card_l7 = s7.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.65), Inches(5.6), Inches(5.15))
+    card_l7.fill.solid()
+    card_l7.fill.fore_color.rgb = C_CARD
+    card_l7.line.color.rgb = C_PINK
+    card_l7.line.width = Pt(1.5)
+
+    tb_l7 = s7.shapes.add_textbox(Inches(1.05), Inches(1.8), Inches(5.1), Inches(4.8))
+    tf_l7 = tb_l7.text_frame
+    tf_l7.word_wrap = True
+
+    p = tf_l7.paragraphs[0]
+    p.text = "TwinLiteNet+ ARCHITECTURE & NIGHTTIME RATIONALE"
+    p.font.size = Pt(12)
+    p.font.bold = True
+    p.font.color.rgb = C_PINK
+
+    tl_points = [
+        ("Depthwise Separable Convolution Core:", "Factorizes spatial filtering and channel cross-talk into separate depthwise and pointwise convolutions, reducing FLOPs by 8-9x."),
+        ("ESPNet Hierarchical Pyramid Block:", "Employs parallel dilated depthwise convolutions with dilation rates d in {1, 2, 4, 8}. Additive hierarchical connection eliminates gridding artifacts."),
+        ("Channel Attention Adaptive Module (CAAM):", "Lightweight Squeeze-and-Excitation gating recalibrates channel activations, dynamically boosting under-illuminated feature channels."),
+        ("Hardware Profile & Nighttime Performance:", "0.47M Params | 2.80 GFLOPs | 4.2ms (238.1 FPS on T4 GPU). Baseline: 32.32% mIoU. Reveals the lower capacity limit of micro-models on 19 nighttime classes.")
+    ]
+    for lbl, desc in tl_points:
+        p = tf_l7.add_paragraph()
+        p.text = lbl
+        p.font.size = Pt(10)
+        p.font.bold = True
+        p.font.color.rgb = C_CYAN
+        p.space_before = Pt(6)
+        p_val = tf_l7.add_paragraph()
+        p_val.text = desc
+        p_val.font.size = Pt(9)
+        p_val.font.color.rgb = C_WHITE
+
+    if (assets_dir / "arch_twinlite.png").exists():
+        s7.shapes.add_picture(str(assets_dir / "arch_twinlite.png"), Inches(6.6), Inches(1.65), width=Inches(5.933))
+
+    set_notes(s7, "Slide 7 introduces TwinLiteNet+, representing the ultra-lightweight end of the spectrum. Utilizing depthwise separable convolutions, hierarchical dilated ESPNet blocks, and CAAM channel attention, it operates at a blistering 238 FPS with only 0.47M parameters. It allowed us to test the lower capacity boundary of real-time edge networks on 19 nighttime classes.")
+
+    # =========================================================================
+    # SLIDE 8: Model 4 - SegFormer-B2 (Teacher)
+    # =========================================================================
+    s8 = prs.slides.add_slide(blank_layout)
+    add_header(s8, "Model Architecture 4 / 4 (Teacher)", "SegFormer-B2: Hierarchical Vision Transformer Teacher")
+
+    card_l8 = s8.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.65), Inches(5.6), Inches(5.15))
+    card_l8.fill.solid()
+    card_l8.fill.fore_color.rgb = C_CARD
+    card_l8.line.color.rgb = C_PURPLE
+    card_l8.line.width = Pt(1.5)
+
+    tb_l8 = s8.shapes.add_textbox(Inches(1.05), Inches(1.8), Inches(5.1), Inches(4.8))
+    tf_l8 = tb_l8.text_frame
+    tf_l8.word_wrap = True
+
+    p = tf_l8.paragraphs[0]
+    p.text = "SegFormer-B2 ARCHITECTURE & DISTILLATION ROLE"
+    p.font.size = Pt(12)
     p.font.bold = True
     p.font.color.rgb = C_PURPLE
 
-    points_r6 = [
+    seg_points = [
+        ("Hierarchical Mix Transformer (MiT-B2):", "4 progressive stages generating multi-level features (H/4, H/8, H/16, H/32). Overlapped Patch Merging preserves local edge continuity."),
+        ("Efficient Self-Attention (Spatial Reduction):", "Reduces key/value sequence lengths by ratio R, enabling long-range multi-head attention across high-resolution nocturnal driving scenes."),
+        ("Mix-FFN (No Positional Embeddings):", "Injects 3x3 depthwise convolutions into FFN blocks to encode position dynamically, avoiding interpolation errors across varying image sizes."),
+        ("All-MLP Lightweight Decoder & Distillation Role:", "24.2M Params | 62.4 GFLOPs. Fine-tuned on NightCity to reach 49.54% mIoU. Acts as the teacher generating soft dark probability maps for our real-time students!")
+    ]
+    for lbl, desc in seg_points:
+        p = tf_l8.add_paragraph()
+        p.text = lbl
+        p.font.size = Pt(10)
+        p.font.bold = True
+        p.font.color.rgb = C_CYAN
+        p.space_before = Pt(6)
+        p_val = tf_l8.add_paragraph()
+        p_val.text = desc
+        p_val.font.size = Pt(9)
+        p_val.font.color.rgb = C_WHITE
+
+    if (assets_dir / "arch_segformer.png").exists():
+        s8.shapes.add_picture(str(assets_dir / "arch_segformer.png"), Inches(6.6), Inches(1.65), width=Inches(5.933))
+
+    set_notes(s8, "Slide 8 presents our teacher model: SegFormer-B2. SegFormer uses a hierarchical Mix Transformer encoder with overlapped patch merging and efficient spatial-reduction attention. It eliminates fixed positional embeddings, making it robust to dark scene distortions. Fine-tuned to 49.54% mIoU on NightCity, it provides the rich contextual supervision needed to guide our compact students.")
+
+    # =========================================================================
+    # SLIDE 9: The Distillation Paradigm (Why ViT Teacher?)
+    # =========================================================================
+    s9 = prs.slides.add_slide(blank_layout)
+    add_header(s9, "Knowledge Distillation Paradigm", "Why SegFormer-B2 as Teacher? Global Reasoning for Dark Scenes")
+
+    card_l9 = s9.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.65), Inches(5.6), Inches(5.15))
+    card_l9.fill.solid()
+    card_l9.fill.fore_color.rgb = C_CARD
+    card_l9.line.color.rgb = C_CARD_BORDER
+
+    tb_l9 = s9.shapes.add_textbox(Inches(1.05), Inches(1.85), Inches(5.1), Inches(4.7))
+    tf_l9 = tb_l9.text_frame
+    tf_l9.word_wrap = True
+
+    p = tf_l9.paragraphs[0]
+    p.text = "THE RECEPTIVE FIELD DILEMMA IN NIGHT VISION"
+    p.font.size = Pt(12.5)
+    p.font.bold = True
+    p.font.color.rgb = C_CYAN
+
+    points_l9 = [
+        ("CNN Local Inductive Bias:", "Standard convolutions look only at neighboring 3x3 patches. In an unlit road, local pixels are all near zero [0, 15] RGB. The CNN sees black noise and hallucinates a building."),
+        ("Transformer Global Self-Attention:", "Vision Transformers compute pairwise relationships across the entire image. A distant streetlight or oncoming headlights provides the context needed to infer that a dark patch 500 pixels away is the road plane."),
+        ("The Deployment Barrier:", "SegFormer-B2 (24.2M params) possesses this global reasoning but runs at only 26 FPS on a T4 GPU (38.4ms latency), violating the 30 FPS automotive safety threshold.")
+    ]
+    for lbl, desc in points_l9:
+        p = tf_l9.add_paragraph()
+        p.text = lbl
+        p.font.size = Pt(10.5)
+        p.font.bold = True
+        p.font.color.rgb = C_AMBER
+        p.space_before = Pt(8)
+        p_val = tf_l9.add_paragraph()
+        p_val.text = desc
+        p_val.font.size = Pt(9.5)
+        p_val.font.color.rgb = C_WHITE
+
+    card_r9 = s9.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.7), Inches(1.65), Inches(5.833), Inches(5.15))
+    card_r9.fill.solid()
+    card_r9.fill.fore_color.rgb = C_CARD
+    card_r9.line.color.rgb = C_PURPLE
+    card_r9.line.width = Pt(1.5)
+
+    tb_r9 = s9.shapes.add_textbox(Inches(6.95), Inches(1.85), Inches(5.333), Inches(4.7))
+    tf_r9 = tb_r9.text_frame
+    tf_r9.word_wrap = True
+
+    p = tf_r9.paragraphs[0]
+    p.text = "CROSS-ARCHITECTURE DISTILLATION MECHANISM"
+    p.font.size = Pt(12.5)
+    p.font.bold = True
+    p.font.color.rgb = C_PURPLE
+
+    points_r9 = [
         ("Hierarchical ViT Teacher:", "Fine-tuned SegFormer-B2 (MiT-B2 encoder + MLP decoder) trained specifically on NightCity to reach 49.54% mIoU."),
         ("Soft Dark-Distribution Transfer:", "Dark pixels that look identical in RGB have rich, nuanced probability spreads in the teacher's softmax logits. Distillation transfers these semantic priors to the student."),
         ("Zero Runtime Overhead:", "The teacher model is discarded after training. The student model operates purely at its native CNN speed (>90 FPS) while retaining transformer-level nocturnal comprehension!"),
         ("Loss Formulation:", "L_total = (1 - alpha)*L_task + alpha * T^2 * KL_Div(sigma(z_S / T) || sigma(z_T / T))")
     ]
-    for lbl, desc in points_r6:
-        p = tf_r6.add_paragraph()
+    for lbl, desc in points_r9:
+        p = tf_r9.add_paragraph()
         p.text = lbl
-        p.font.size = Pt(11)
+        p.font.size = Pt(10.5)
         p.font.bold = True
         p.font.color.rgb = C_EMERALD
         p.space_before = Pt(8)
-        p_val = tf_r6.add_paragraph()
+        p_val = tf_r9.add_paragraph()
         p_val.text = desc
-        p_val.font.size = Pt(10)
+        p_val.font.size = Pt(9.5)
         p_val.font.color.rgb = C_WHITE
 
-    set_notes(s6, "Slide 6 explains our core methodology: why use a Vision Transformer teacher? Standard CNNs rely on local 3x3 kernels. When an area is completely black, local pixels contain zero structural cues. Transformers, however, use global self-attention to link distant streetlights with unlit road surfaces. Distillation transfers this global understanding into our fast CNNs without any runtime penalty during vehicle operation.")
+    set_notes(s9, "Slide 9 explains our core methodology: why use a Vision Transformer teacher? Standard CNNs rely on local 3x3 kernels. When an area is completely black, local pixels contain zero structural cues. Transformers, however, use global self-attention to link distant streetlights with unlit road surfaces. Distillation transfers this global understanding into our fast CNNs without any runtime penalty during vehicle operation.")
 
     # =========================================================================
-    # SLIDE 7: Distillation Engineering: Standard vs. Enhanced
+    # SLIDE 10: Distillation Protocols (Standard vs. Enhanced)
     # =========================================================================
-    s7 = prs.slides.add_slide(blank_layout)
-    add_header(s7, "Distillation Engineering", "Experimental Protocols: Standard vs. Enhanced Distillation")
+    s10 = prs.slides.add_slide(blank_layout)
+    add_header(s10, "Distillation Engineering", "Experimental Protocols: Standard vs. Enhanced Distillation")
 
-    # Table layout comparing protocols
-    tbl_shape = s7.shapes.add_table(6, 3, Inches(0.8), Inches(1.7), Inches(11.733), Inches(4.9))
-    tbl = tbl_shape.table
-    tbl.columns[0].width = Inches(2.733)
-    tbl.columns[1].width = Inches(4.5)
-    tbl.columns[2].width = Inches(4.5)
+    tbl_shape10 = s10.shapes.add_table(6, 3, Inches(0.8), Inches(1.65), Inches(11.733), Inches(4.95))
+    tbl10 = tbl_shape10.table
+    tbl10.columns[0].width = Inches(2.733)
+    tbl10.columns[1].width = Inches(4.5)
+    tbl10.columns[2].width = Inches(4.5)
 
-    headers = ["Component / Hyperparameter", "Experiment 1: Standard Distillation", "Experiment 2: Enhanced Distillation"]
-    for c_idx, h in enumerate(headers):
-        cell = tbl.cell(0, c_idx)
+    headers10 = ["Component / Hyperparameter", "Experiment 1: Standard Distillation", "Experiment 2: Enhanced Distillation"]
+    for c_idx, h in enumerate(headers10):
+        cell = tbl10.cell(0, c_idx)
         cell.fill.solid()
         cell.fill.fore_color.rgb = C_CARD
         cell.text = h
         p = cell.text_frame.paragraphs[0]
-        p.font.size = Pt(11.5)
+        p.font.size = Pt(11)
         p.font.bold = True
         p.font.color.rgb = C_CYAN if c_idx == 0 else (C_AMBER if c_idx == 1 else C_EMERALD)
 
-    rows = [
+    rows10 = [
         ("Teacher Adaptation", "Light warmup: 5 epochs on NightCity (Best mIoU: 45.25%)", "Deep adaptation: 15 epochs on NightCity (Best mIoU: 49.54%)"),
-        ("Learning Rate Schedule", "Fixed step decay schedule; base LR = 1e-3", "Cosine Annealing with linear warmup (prevents premature convergence)"),
+        ("Learning Rate Schedule", "Fixed step decay schedule; base LR = 1e-3", "Cosine Annealing with linear warmup (prevents premature plateauing)"),
         ("Hard Example Mining", "Uniform cross-entropy across all pixels (no mining)", "Online Hard Example Mining (OHEM): forces loss on top 20% dark/glare errors"),
         ("Temperature & Loss Weight", "Fixed Temperature T = 4.0, KD Weight alpha = 0.5", "Dynamic Temperature Scaling + Boundary Loss weighting (bd_weight = 1.0)"),
         ("Optimization Objective", "L_task (CE) + alpha * L_KD", "L_OHEM + L_Boundary + alpha * T^2 * L_KD")
     ]
-    for r_idx, (c0, c1, c2) in enumerate(rows, start=1):
+    for r_idx, (c0, c1, c2) in enumerate(rows10, start=1):
         for c_idx, val in enumerate([c0, c1, c2]):
-            cell = tbl.cell(r_idx, c_idx)
+            cell = tbl10.cell(r_idx, c_idx)
             cell.fill.solid()
             cell.fill.fore_color.rgb = RGBColor(18, 26, 43) if r_idx % 2 == 1 else C_CARD
             cell.text = val
@@ -475,25 +587,24 @@ def create_deck():
             if c_idx == 0:
                 p.font.bold = True
 
-    set_notes(s7, "Slide 7 details the two distillation protocols we designed. In Standard Distillation, we used a lightly fine-tuned 5-epoch SegFormer teacher and fixed uniform cross-entropy. In Enhanced Distillation, we fully trained the teacher to 49.54% mIoU, used Cosine Annealing learning rate scheduling, and introduced Online Hard Example Mining (OHEM) to penalize dark glare and boundary errors.")
+    set_notes(s10, "Slide 10 details the two distillation protocols we designed. In Standard Distillation, we used a lightly fine-tuned 5-epoch SegFormer teacher and fixed uniform cross-entropy. In Enhanced Distillation, we fully trained the teacher to 49.54% mIoU, used Cosine Annealing learning rate scheduling, and introduced Online Hard Example Mining (OHEM) to penalize dark glare and boundary errors.")
 
     # =========================================================================
-    # SLIDE 8: Experimental Results: Baseline NightCity Benchmarks
+    # SLIDE 11: Experimental Results: Baseline Benchmarks
     # =========================================================================
-    s8 = prs.slides.add_slide(blank_layout)
-    add_header(s8, "Experimental Benchmarks", "Supervised Baselines: Training From Scratch on NightCity")
+    s11 = prs.slides.add_slide(blank_layout)
+    add_header(s11, "Experimental Benchmarks", "Supervised Baselines: Training From Scratch on NightCity")
 
-    # Table on Left
-    tbl_shape8 = s8.shapes.add_table(6, 4, Inches(0.8), Inches(1.7), Inches(6.8), Inches(4.9))
-    tbl8 = tbl_shape8.table
-    tbl8.columns[0].width = Inches(2.3)
-    tbl8.columns[1].width = Inches(1.5)
-    tbl8.columns[2].width = Inches(1.5)
-    tbl8.columns[3].width = Inches(1.5)
+    tbl_shape11 = s11.shapes.add_table(6, 4, Inches(0.8), Inches(1.65), Inches(6.8), Inches(4.95))
+    tbl11 = tbl_shape11.table
+    tbl11.columns[0].width = Inches(2.3)
+    tbl11.columns[1].width = Inches(1.5)
+    tbl11.columns[2].width = Inches(1.5)
+    tbl11.columns[3].width = Inches(1.5)
 
-    headers8 = ["Metric (1,299 Val Scenes)", "PIDNet-S", "DDRNet-23-slim", "TwinLiteNet+"]
-    for c_idx, h in enumerate(headers8):
-        cell = tbl8.cell(0, c_idx)
+    headers11 = ["Metric (1,299 Val Scenes)", "PIDNet-S", "DDRNet-23-slim", "TwinLiteNet+"]
+    for c_idx, h in enumerate(headers11):
+        cell = tbl11.cell(0, c_idx)
         cell.fill.solid()
         cell.fill.fore_color.rgb = C_CARD
         cell.text = h
@@ -502,16 +613,16 @@ def create_deck():
         p.font.bold = True
         p.font.color.rgb = C_CYAN
 
-    data8 = [
+    data11 = [
         ("Validation mIoU", "46.16%", "43.51%", "32.32%"),
         ("Pixel Accuracy", "86.48%", "84.67%", "81.48%"),
         ("Mean Dice (F1)", "57.70%", "55.25%", "40.87%"),
         ("Sensitivity (Recall)", "57.89%", "54.53%", "39.19%"),
         ("Specificity", "98.83%", "98.66%", "98.31%")
     ]
-    for r_idx, (c0, c1, c2, c3) in enumerate(data8, start=1):
+    for r_idx, (c0, c1, c2, c3) in enumerate(data11, start=1):
         for c_idx, val in enumerate([c0, c1, c2, c3]):
-            cell = tbl8.cell(r_idx, c_idx)
+            cell = tbl11.cell(r_idx, c_idx)
             cell.fill.solid()
             cell.fill.fore_color.rgb = RGBColor(18, 26, 43) if r_idx % 2 == 1 else C_CARD
             cell.text = val
@@ -521,59 +632,57 @@ def create_deck():
             if c_idx == 0 or "46.16" in val:
                 p.font.bold = True
 
-    # Card on Right: Key Baseline Observations
-    card_r8 = s8.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(7.8), Inches(1.7), Inches(4.733), Inches(4.9))
-    card_r8.fill.solid()
-    card_r8.fill.fore_color.rgb = C_CARD
-    card_r8.line.color.rgb = C_CARD_BORDER
+    card_r11 = s11.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(7.8), Inches(1.65), Inches(4.733), Inches(4.95))
+    card_r11.fill.solid()
+    card_r11.fill.fore_color.rgb = C_CARD
+    card_r11.line.color.rgb = C_CARD_BORDER
 
-    tb_r8 = s8.shapes.add_textbox(Inches(8.05), Inches(1.9), Inches(4.233), Inches(4.5))
-    tf_r8 = tb_r8.text_frame
-    tf_r8.word_wrap = True
+    tb_r11 = s11.shapes.add_textbox(Inches(8.05), Inches(1.85), Inches(4.233), Inches(4.5))
+    tf_r11 = tb_r11.text_frame
+    tf_r11.word_wrap = True
 
-    p = tf_r8.paragraphs[0]
+    p = tf_r11.paragraphs[0]
     p.text = "KEY BASELINE TAKEAWAYS"
-    p.font.size = Pt(13)
+    p.font.size = Pt(12.5)
     p.font.bold = True
     p.font.color.rgb = C_CYAN
 
-    obs8 = [
+    obs11 = [
         ("PIDNet-S Leads Baselines (46.16%):", "The Derivative boundary branch prevents edge bleeding even under weak lighting. High Dice (57.70%) confirms strong boundary coherence on road and car."),
         ("DDRNet-23-slim Close Behind (43.51%):", "Bilateral aggregation preserves high-res spatial paths, but 1/32 downsampling in early blocks causes small dark objects to lose gradient anchor points."),
         ("TwinLiteNet+ Capacity Limit (32.32%):", "At 0.47M parameters, depthwise blocks lack channel capacity to distinguish 19 dark classes without prior contextual guidance."),
         ("Universal Tail-Class Failure:", "All baseline models struggle on thin classes (traffic light, pole, sign) without transfer learning or distillation.")
     ]
-    for lbl, desc in obs8:
-        p = tf_r8.add_paragraph()
+    for lbl, desc in obs11:
+        p = tf_r11.add_paragraph()
         p.text = lbl
-        p.font.size = Pt(10.5)
+        p.font.size = Pt(10)
         p.font.bold = True
         p.font.color.rgb = C_AMBER
         p.space_before = Pt(8)
-        p_val = tf_r8.add_paragraph()
+        p_val = tf_r11.add_paragraph()
         p_val.text = desc
-        p_val.font.size = Pt(9.5)
+        p_val.font.size = Pt(9)
         p_val.font.color.rgb = C_WHITE
 
-    set_notes(s8, "Slide 8 shows our supervised baselines trained across all 1,299 NightCity validation scenes. PIDNet-S leads at 46.16% mIoU and 86.48% pixel accuracy, demonstrating the value of its Derivative boundary branch. DDRNet achieves 43.51%, while TwinLiteNet+ reaches 32.32%, identifying a clear capacity threshold for multi-class nocturnal parsing.")
+    set_notes(s11, "Slide 11 shows our supervised baselines trained across all 1,299 NightCity validation scenes. PIDNet-S leads at 46.16% mIoU and 86.48% pixel accuracy, demonstrating the value of its Derivative boundary branch. DDRNet achieves 43.51%, while TwinLiteNet+ reaches 32.32%, identifying a clear capacity threshold for multi-class nocturnal parsing.")
 
     # =========================================================================
-    # SLIDE 9: Distillation Results (Standard vs. Enhanced)
+    # SLIDE 12: Distillation Results
     # =========================================================================
-    s9 = prs.slides.add_slide(blank_layout)
-    add_header(s9, "Experimental Benchmarks", "Distillation Results: Impact of Teacher Quality & OHEM")
+    s12 = prs.slides.add_slide(blank_layout)
+    add_header(s12, "Experimental Benchmarks", "Distillation Results: Impact of Teacher Quality & OHEM")
 
-    # Left: Table
-    tbl_shape9 = s9.shapes.add_table(5, 4, Inches(0.8), Inches(1.7), Inches(6.0), Inches(4.9))
-    tbl9 = tbl_shape9.table
-    tbl9.columns[0].width = Inches(2.1)
-    tbl9.columns[1].width = Inches(1.3)
-    tbl9.columns[2].width = Inches(1.3)
-    tbl9.columns[3].width = Inches(1.3)
+    tbl_shape12 = s12.shapes.add_table(5, 4, Inches(0.8), Inches(1.65), Inches(6.0), Inches(4.95))
+    tbl12 = tbl_shape12.table
+    tbl12.columns[0].width = Inches(2.1)
+    tbl12.columns[1].width = Inches(1.3)
+    tbl12.columns[2].width = Inches(1.3)
+    tbl12.columns[3].width = Inches(1.3)
 
-    headers9 = ["Architecture", "Baseline", "Standard KD", "Enhanced KD"]
-    for c_idx, h in enumerate(headers9):
-        cell = tbl9.cell(0, c_idx)
+    headers12 = ["Architecture", "Baseline", "Standard KD", "Enhanced KD"]
+    for c_idx, h in enumerate(headers12):
+        cell = tbl12.cell(0, c_idx)
         cell.fill.solid()
         cell.fill.fore_color.rgb = C_CARD
         cell.text = h
@@ -582,15 +691,15 @@ def create_deck():
         p.font.bold = True
         p.font.color.rgb = C_CYAN
 
-    data9 = [
-        ("PIDNet-S", "46.16%", "40.89%*", "47.79%"),
+    data12 = [
+        ("PIDNet-S", "46.16%", "40.89%", "47.79%"),
         ("DDRNet-23-slim", "43.51%", "44.60%", "45.80%*"),
         ("TwinLiteNet+", "32.32%", "31.51%", "34.50%*"),
         ("SegFormer-B2 (Teacher)", "—", "45.25% (5ep)", "49.54% (15ep)")
     ]
-    for r_idx, (c0, c1, c2, c3) in enumerate(data9, start=1):
+    for r_idx, (c0, c1, c2, c3) in enumerate(data12, start=1):
         for c_idx, val in enumerate([c0, c1, c2, c3]):
-            cell = tbl9.cell(r_idx, c_idx)
+            cell = tbl12.cell(r_idx, c_idx)
             cell.fill.solid()
             cell.fill.fore_color.rgb = RGBColor(18, 26, 43) if r_idx % 2 == 1 else C_CARD
             cell.text = val
@@ -600,36 +709,33 @@ def create_deck():
             if c_idx == 0 or "47.79" in val or "49.54" in val:
                 p.font.bold = True
 
-    # Right: Chart
     if (assets_dir / "experiment_comparison.png").exists():
-        s9.shapes.add_picture(str(assets_dir / "experiment_comparison.png"), Inches(7.0), Inches(1.7), width=Inches(5.533))
+        s12.shapes.add_picture(str(assets_dir / "experiment_comparison.png"), Inches(7.0), Inches(1.65), width=Inches(5.533))
 
-    set_notes(s9, "Slide 9 presents our distillation results. Enhanced Distillation on PIDNet-S sets our all-time project record at 47.79% mIoU—a +1.63% gain over baseline and +6.90% over standard KD. For DDRNet, standard distillation immediately produced a +1.09% gain. For TwinLiteNet+, we identified a capacity bottleneck where soft label noise requires feature projection.")
+    set_notes(s12, "Slide 12 presents our distillation results. Enhanced Distillation on PIDNet-S sets our all-time project record at 47.79% mIoU—a +1.63% gain over baseline and +6.90% over standard KD. For DDRNet, standard distillation immediately produced a +1.09% gain. For TwinLiteNet+, we identified a capacity bottleneck where soft label noise requires feature projection.")
 
     # =========================================================================
-    # SLIDE 10: The Latency-Accuracy Pareto Frontier
+    # SLIDE 13: The Latency-Accuracy Pareto Frontier
     # =========================================================================
-    s10 = prs.slides.add_slide(blank_layout)
-    add_header(s10, "Automotive Edge Feasibility", "The Latency-Accuracy Pareto Frontier")
+    s13 = prs.slides.add_slide(blank_layout)
+    add_header(s13, "Automotive Edge Feasibility", "The Latency-Accuracy Pareto Frontier")
 
-    # Left: Pareto Chart
     if (assets_dir / "pareto_frontier.png").exists():
-        s10.shapes.add_picture(str(assets_dir / "pareto_frontier.png"), Inches(0.8), Inches(1.7), width=Inches(6.4))
+        s13.shapes.add_picture(str(assets_dir / "pareto_frontier.png"), Inches(0.8), Inches(1.65), width=Inches(6.4))
 
-    # Right: Trade-Off Summary Table & Cards
-    card_r10 = s10.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(7.4), Inches(1.7), Inches(5.133), Inches(5.1))
-    card_r10.fill.solid()
-    card_r10.fill.fore_color.rgb = C_CARD
-    card_r10.line.color.rgb = C_EMERALD
-    card_r10.line.width = Pt(1.5)
+    card_r13 = s13.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(7.4), Inches(1.65), Inches(5.133), Inches(5.15))
+    card_r13.fill.solid()
+    card_r13.fill.fore_color.rgb = C_CARD
+    card_r13.line.color.rgb = C_EMERALD
+    card_r13.line.width = Pt(1.5)
 
-    tb_r10 = s10.shapes.add_textbox(Inches(7.65), Inches(1.9), Inches(4.633), Inches(4.7))
-    tf_r10 = tb_r10.text_frame
-    tf_r10.word_wrap = True
+    tb_r13 = s13.shapes.add_textbox(Inches(7.65), Inches(1.85), Inches(4.633), Inches(4.7))
+    tf_r13 = tb_r13.text_frame
+    tf_r13.word_wrap = True
 
-    p = tf_r10.paragraphs[0]
+    p = tf_r13.paragraphs[0]
     p.text = "EDGE DEPLOYMENT VERIFICATION"
-    p.font.size = Pt(13)
+    p.font.size = Pt(12.5)
     p.font.bold = True
     p.font.color.rgb = C_EMERALD
 
@@ -640,36 +746,35 @@ def create_deck():
         ("SegFormer-B2 (Fails Automotive Budget):", "26.0 FPS (38.4ms latency). Exceeds the 33ms threshold for safe 30 FPS autonomous driving.")
     ]
     for lbl, desc in tradeoffs:
-        p = tf_r10.add_paragraph()
+        p = tf_r13.add_paragraph()
         p.text = lbl
-        p.font.size = Pt(10.5)
+        p.font.size = Pt(10)
         p.font.bold = True
         p.font.color.rgb = C_CYAN
         p.space_before = Pt(8)
-        p_val = tf_r10.add_paragraph()
+        p_val = tf_r13.add_paragraph()
         p_val.text = desc
-        p_val.font.size = Pt(9.5)
+        p_val.font.size = Pt(9)
         p_val.font.color.rgb = C_WHITE
 
-    set_notes(s10, "Slide 10 illustrates the central engineering insight of our research: the Latency-Accuracy Pareto Frontier. The SegFormer teacher has the highest accuracy at 49.54%, but at 26 FPS, it violates automotive safety requirements. PIDNet-S with Enhanced Distillation achieves 47.79% mIoU at 92.6 FPS—operating well within automotive real-time budgets with virtually no loss in perception fidelity.")
+    set_notes(s13, "Slide 13 illustrates the central engineering insight of our research: the Latency-Accuracy Pareto Frontier. The SegFormer teacher has the highest accuracy at 49.54%, but at 26 FPS, it violates automotive safety requirements. PIDNet-S with Enhanced Distillation achieves 47.79% mIoU at 92.6 FPS—operating well within automotive real-time budgets with virtually no loss in perception fidelity.")
 
     # =========================================================================
-    # SLIDE 11: Industry Standards & SOTA Literature Comparison
+    # SLIDE 14: Industry Standards & SOTA Research
     # =========================================================================
-    s11 = prs.slides.add_slide(blank_layout)
-    add_header(s11, "Related Work & Standards", "Contextualizing with SOTA Research & Automotive Safety")
+    s14 = prs.slides.add_slide(blank_layout)
+    add_header(s14, "Related Work & Standards", "Contextualizing with SOTA Research & Automotive Safety")
 
-    # Table comparing with published literature
-    tbl_shape11 = s11.shapes.add_table(6, 4, Inches(0.8), Inches(1.7), Inches(11.733), Inches(4.9))
-    tbl11 = tbl_shape11.table
-    tbl11.columns[0].width = Inches(2.5)
-    tbl11.columns[1].width = Inches(3.2)
-    tbl11.columns[2].width = Inches(2.2)
-    tbl11.columns[3].width = Inches(3.833)
+    tbl_shape14 = s14.shapes.add_table(6, 4, Inches(0.8), Inches(1.65), Inches(11.733), Inches(4.95))
+    tbl14 = tbl_shape14.table
+    tbl14.columns[0].width = Inches(2.5)
+    tbl14.columns[1].width = Inches(3.2)
+    tbl14.columns[2].width = Inches(2.2)
+    tbl14.columns[3].width = Inches(3.833)
 
-    headers11 = ["Method / Architecture", "Core Mechanism", "GPU Throughput", "Automotive Viability / Limitation"]
-    for c_idx, h in enumerate(headers11):
-        cell = tbl11.cell(0, c_idx)
+    headers14 = ["Method / Architecture", "Core Mechanism", "GPU Throughput", "Automotive Viability / Limitation"]
+    for c_idx, h in enumerate(headers14):
+        cell = tbl14.cell(0, c_idx)
         cell.fill.solid()
         cell.fill.fore_color.rgb = C_CARD
         cell.text = h
@@ -678,16 +783,16 @@ def create_deck():
         p.font.bold = True
         p.font.color.rgb = C_CYAN
 
-    data11 = [
+    data14 = [
         ("NightLab (CVPR 2022)", "Dual-level global + Hardness Detection crop", "<5 FPS (GPU)", "Failed: Dynamic crops break deterministic latency"),
         ("DTP (ICCV 2023)", "Retinex Illumination Disentanglement + Attention", "<15 FPS (GPU)", "Failed: Retinex division (S/I) diverges in pitch black"),
         ("FDLNet (IEEE TIP 2023)", "Learnable 2D DCT Frequency Filter", "<20 FPS (GPU)", "Failed: Repeated FFT/DCT transforms induce latency"),
         ("DANNet (CVPR 2021)", "Day-to-night adversarial domain adaptation", "~18 FPS (GPU)", "Moderate: High training instability, artifact hallucination"),
         ("Ours: Distilled PIDNet-S", "Cross-Architecture ViT Distillation + OHEM", "92.6 FPS (GPU)", "PASSED: Full ASIL determinism, 47.79% mIoU, zero runtime cost")
     ]
-    for r_idx, (c0, c1, c2, c3) in enumerate(data11, start=1):
+    for r_idx, (c0, c1, c2, c3) in enumerate(data14, start=1):
         for c_idx, val in enumerate([c0, c1, c2, c3]):
-            cell = tbl11.cell(r_idx, c_idx)
+            cell = tbl14.cell(r_idx, c_idx)
             cell.fill.solid()
             cell.fill.fore_color.rgb = RGBColor(18, 26, 43) if r_idx % 2 == 1 else C_CARD
             cell.text = val
@@ -697,15 +802,15 @@ def create_deck():
             if c_idx == 0 or "Ours" in c0:
                 p.font.bold = True
 
-    set_notes(s11, "Slide 11 benchmarks our methodology against recent top-tier publications. SOTA methods like NightLab, DTP, and FDLNet add heavy secondary networks, Retinex decompositions, or DCT spectral transforms. But all of them run at under 20 FPS, violating automotive real-time budgets. Our feed-forward distillation approach delivers comparable segmentation quality while running at 92.6 FPS.")
+    set_notes(s14, "Slide 14 benchmarks our methodology against recent top-tier publications. SOTA methods like NightLab, DTP, and FDLNet add heavy secondary networks, Retinex decompositions, or DCT spectral transforms. But all of them run at under 20 FPS, violating automotive real-time budgets. Our feed-forward distillation approach delivers comparable segmentation quality while running at 92.6 FPS.")
 
     # =========================================================================
-    # SLIDE 12: Qualitative Failure Analysis & Distillation Corrections
+    # SLIDE 15: Qualitative Failure Analysis & Distillation Corrections
     # =========================================================================
-    s12 = prs.slides.add_slide(blank_layout)
-    add_header(s12, "Qualitative Forensics", "Failure Mode Forensics: How Distillation Corrects Errors")
+    s15 = prs.slides.add_slide(blank_layout)
+    add_header(s15, "Qualitative Forensics", "Failure Mode Forensics: How Distillation Corrects Errors")
 
-    cards12 = [
+    cards15 = [
         ("HEADLIGHT GLARE BLOOMING", C_RED, [
             "Baseline Error: Saturated specular glare (255 RGB) on wet asphalt triggers false 'Car' predictions on 23.8% of road pixels.",
             "Distillation Correction: SegFormer's global context teaches the student that a flat horizontal plane flanked by sidewalks is Road, suppressing spurious glare detections."
@@ -720,15 +825,15 @@ def create_deck():
         ])
     ]
 
-    for i, (title, color, bullets) in enumerate(cards12):
+    for i, (title, color, bullets) in enumerate(cards15):
         left = Inches(0.8 + i * 4.0)
-        card = s12.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, Inches(1.7), Inches(3.733), Inches(5.1))
+        card = s15.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, Inches(1.65), Inches(3.733), Inches(5.15))
         card.fill.solid()
         card.fill.fore_color.rgb = C_CARD
         card.line.color.rgb = color
         card.line.width = Pt(1.5)
 
-        tb = s12.shapes.add_textbox(left + Inches(0.25), Inches(1.9), Inches(3.233), Inches(4.7))
+        tb = s15.shapes.add_textbox(left + Inches(0.25), Inches(1.85), Inches(3.233), Inches(4.7))
         tf = tb.text_frame
         tf.word_wrap = True
 
@@ -741,31 +846,30 @@ def create_deck():
         for b in bullets:
             p = tf.add_paragraph()
             p.text = f"• {b}"
-            p.font.size = Pt(10.5)
+            p.font.size = Pt(10)
             p.font.color.rgb = C_WHITE
             p.space_before = Pt(12)
 
-    set_notes(s12, "Slide 12 provides visual failure forensics. In baseline models, glare on wet roads triggers false vehicle detections, blackout alleys cause sky and trees to collapse into buildings, and sidewalks dissolve into the road. Distillation corrects these errors because the student inherits global structural awareness from the teacher.")
+    set_notes(s15, "Slide 15 provides visual failure forensics. In baseline models, glare on wet roads triggers false vehicle detections, blackout alleys cause sky and trees to collapse into buildings, and sidewalks dissolve into the road. Distillation corrects these errors because the student inherits global structural awareness from the teacher.")
 
     # =========================================================================
-    # SLIDE 13: Conclusion & Future Roadmap
+    # SLIDE 16: Conclusion & Future Roadmap
     # =========================================================================
-    s13 = prs.slides.add_slide(blank_layout)
-    add_header(s13, "Summary & Next Steps", "Conclusions, Engineering Impact & Future Roadmap")
+    s16 = prs.slides.add_slide(blank_layout)
+    add_header(s16, "Summary & Next Steps", "Conclusions, Engineering Impact & Future Roadmap")
 
-    # Left: Core Conclusions
-    card_l13 = s13.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.7), Inches(5.6), Inches(5.1))
-    card_l13.fill.solid()
-    card_l13.fill.fore_color.rgb = C_CARD
-    card_l13.line.color.rgb = C_CARD_BORDER
+    card_l16 = s16.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.65), Inches(5.6), Inches(5.15))
+    card_l16.fill.solid()
+    card_l16.fill.fore_color.rgb = C_CARD
+    card_l16.line.color.rgb = C_CARD_BORDER
 
-    tb_l13 = s13.shapes.add_textbox(Inches(1.05), Inches(1.9), Inches(5.1), Inches(4.7))
-    tf_l13 = tb_l13.text_frame
-    tf_l13.word_wrap = True
+    tb_l16 = s16.shapes.add_textbox(Inches(1.05), Inches(1.85), Inches(5.1), Inches(4.7))
+    tf_l16 = tb_l16.text_frame
+    tf_l16.word_wrap = True
 
-    p = tf_l13.paragraphs[0]
+    p = tf_l16.paragraphs[0]
     p.text = "CORE PROJECT CONCLUSIONS"
-    p.font.size = Pt(13)
+    p.font.size = Pt(12.5)
     p.font.bold = True
     p.font.color.rgb = C_EMERALD
 
@@ -776,30 +880,29 @@ def create_deck():
         ("4. Capacity Threshold Identified:", "Micro models (<0.5M params) require specialized feature-matching losses to absorb soft dark distributions without over-smoothing.")
     ]
     for lbl, desc in conclusions:
-        p = tf_l13.add_paragraph()
+        p = tf_l16.add_paragraph()
         p.text = lbl
-        p.font.size = Pt(11)
+        p.font.size = Pt(10.5)
         p.font.bold = True
         p.font.color.rgb = C_CYAN
         p.space_before = Pt(8)
-        p_val = tf_l13.add_paragraph()
+        p_val = tf_l16.add_paragraph()
         p_val.text = desc
-        p_val.font.size = Pt(10)
+        p_val.font.size = Pt(9.5)
         p_val.font.color.rgb = C_WHITE
 
-    # Right: Future Work Roadmap
-    card_r13 = s13.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.7), Inches(1.7), Inches(5.833), Inches(5.1))
-    card_r13.fill.solid()
-    card_r13.fill.fore_color.rgb = C_CARD
-    card_r13.line.color.rgb = C_CARD_BORDER
+    card_r16 = s16.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.7), Inches(1.65), Inches(5.833), Inches(5.15))
+    card_r16.fill.solid()
+    card_r16.fill.fore_color.rgb = C_CARD
+    card_r16.line.color.rgb = C_CARD_BORDER
 
-    tb_r13 = s13.shapes.add_textbox(Inches(6.95), Inches(1.9), Inches(5.333), Inches(4.7))
-    tf_r13 = tb_r13.text_frame
-    tf_r13.word_wrap = True
+    tb_r16 = s16.shapes.add_textbox(Inches(6.95), Inches(1.85), Inches(5.333), Inches(4.7))
+    tf_r16 = tb_r16.text_frame
+    tf_r16.word_wrap = True
 
-    p = tf_r13.paragraphs[0]
+    p = tf_r16.paragraphs[0]
     p.text = "AUTOMOTIVE DEPLOYMENT ROADMAP"
-    p.font.size = Pt(13)
+    p.font.size = Pt(12.5)
     p.font.bold = True
     p.font.color.rgb = C_AMBER
 
@@ -810,23 +913,27 @@ def create_deck():
         ("Open-Source Benchmark Kit:", "Release unified Kaggle reproduction notebooks and pretrained checkpoints for academic and industry evaluation.")
     ]
     for lbl, desc in roadmap:
-        p = tf_r13.add_paragraph()
+        p = tf_r16.add_paragraph()
         p.text = lbl
-        p.font.size = Pt(11)
+        p.font.size = Pt(10.5)
         p.font.bold = True
         p.font.color.rgb = C_PURPLE
         p.space_before = Pt(8)
-        p_val = tf_r13.add_paragraph()
+        p_val = tf_r16.add_paragraph()
         p_val.text = desc
-        p_val.font.size = Pt(10)
+        p_val.font.size = Pt(9.5)
         p_val.font.color.rgb = C_WHITE
 
-    set_notes(s13, "Slide 13 concludes our presentation. We have demonstrated that nighttime semantic segmentation does not require heavy, unfeasible architectures. By distilling a Vision Transformer into real-time CNNs, we achieved a new project record of 47.79% mIoU at 92.6 FPS. For future work, INT8 quantization on NVIDIA Orin and multimodal thermal distillation represent immediate next steps. Thank you, and we welcome your questions.")
+    set_notes(s16, "Slide 16 concludes our presentation. We have demonstrated that nighttime semantic segmentation does not require heavy, unfeasible architectures. By distilling a Vision Transformer into real-time CNNs, we achieved a new project record of 47.79% mIoU at 92.6 FPS. For future work, INT8 quantization on NVIDIA Orin and multimodal thermal distillation represent immediate next steps. Thank you, and we welcome your questions.")
 
-    # Save presentation
     output_path = Path("AI512_Project/presentation/Nighttime_Semantic_Segmentation_Presentation.pptx")
-    prs.save(output_path)
-    print(f"Presentation successfully created: {output_path}")
+    try:
+        prs.save(output_path)
+        print(f"Presentation successfully updated: {output_path} (Total Slides: {len(prs.slides)})")
+    except PermissionError:
+        alt_path = Path("AI512_Project/presentation/Nighttime_Semantic_Segmentation_Presentation_v2.pptx")
+        prs.save(alt_path)
+        print(f"Original file was open in PowerPoint. Saved updated presentation to: {alt_path} (Total Slides: {len(prs.slides)})")
 
 if __name__ == "__main__":
     create_deck()

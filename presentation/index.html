@@ -408,7 +408,7 @@
       <span style="color:var(--text-white)">REAL-TIME NIGHTTIME SEMANTIC SEGMENTATION</span>
     </div>
     <div class="controls">
-      <span class="slide-counter" id="slide-num">1 / 13</span>
+      <span class="slide-counter" id="slide-num">1 / 16</span>
       <button class="btn" onclick="prevSlide()">◀ Prev</button>
       <button class="btn" onclick="nextSlide()">Next ▶</button>
       <button class="btn" onclick="toggleNotes()">🎙 Notes (N)</button>
@@ -547,41 +547,94 @@
       </div>
     </div>
 
-    <!-- SLIDE 5: Architecture Selection (The Student Suite) -->
-    <div class="slide" data-notes="Slide 5 introduces the three student models evaluated in our project. PIDNet-S uses an explicit Derivative boundary branch to prevent dark-region boundary bleed. DDRNet-23-slim uses bilateral feature exchange with a DAPPM module for over 100 FPS throughput. And TwinLiteNet+ represents ultra-compact edge models with just 0.47 million parameters.">
-      <div class="slide-tag">Architecture Selection</div>
-      <div class="slide-title">The Real-Time Student Architecture Suite</div>
+    <!-- SLIDE 5: Model 1 - PIDNet-S -->
+    <div class="slide" data-notes="Slide 5 examines PIDNet-S in detail. Inspired by classical PID controllers, PIDNet uses three parallel streams: Proportional for high-res detail, Integral for global context, and Derivative for high-frequency boundaries. In nocturnal driving, where curb and vehicle silhouettes vanish into shadows, the explicit Derivative branch acts as an anchor. It delivers 92.6 FPS on a T4 GPU and achieves our project's peak accuracy of 47.79% mIoU.">
+      <div class="slide-tag">Model Architecture 1 / 4</div>
+      <div class="slide-title">PIDNet-S: Proportional-Integral-Derivative Real-Time Network</div>
       <div class="divider"></div>
 
-      <div class="grid-3">
+      <div class="grid-2-wide-left">
         <div class="card" style="border-top: 4px solid var(--accent-emerald)">
-          <div class="card-title" style="color:var(--accent-emerald)">PIDNet-S</div>
-          <div style="font-size:11px; color:var(--text-muted); font-weight:700; margin-bottom:12px">7.63M Params | 15.8 GFLOPs | 92.6 FPS</div>
+          <div class="card-title" style="color:var(--accent-emerald)">PIDNet-S ARCHITECTURE & NIGHTTIME RATIONALE</div>
           <ul>
-            <li><strong>Three-Branch Control Paradigm:</strong> Proportional (P) branch preserves spatial detail, Integral (I) aggregates multi-scale context, Derivative (D) tracks high-frequency boundaries.</li>
-            <li><strong>Boundary-Guided Fusion (PAP/PAG):</strong> Anchors semantic boundaries explicitly to prevent dark-region bleeding.</li>
-            <li><strong>Why Chosen:</strong> Best boundary-retention architecture; directly combats nocturnal boundary decay.</li>
+            <li><strong>Three-Branch Control Paradigm:</strong> Formulates scene parsing as a feedback control system: <strong>P-branch</strong> preserves spatial detail ($H/4$), <strong>I-branch</strong> aggregates semantics ($H/32$), and <strong>D-branch</strong> tracks boundary gradients ($H/8$).</li>
+            <li><strong>Explicit Boundary Supervision:</strong> Trained with dedicated boundary loss (CE + Dice). Explicitly anchors semantic boundaries so dark regions don't bleed into adjacent road or sky pixels.</li>
+            <li><strong>Pixel-Attention Guided Fusion (PAG/PAP):</strong> Selectively modulates contextual feature integration using spatial and boundary attention maps.</li>
+            <li><strong>Hardware Profile & Nighttime Performance:</strong> <strong>7.63M Params</strong> | <strong>15.8 GFLOPs</strong> | <strong>10.8ms (92.6 FPS on T4 GPU)</strong>. Baseline: 46.16% mIoU &rarr; Distilled Enhanced: <strong style="color:var(--accent-emerald)">47.79% mIoU</strong> (All-time project record).</li>
           </ul>
         </div>
 
+        <div class="chart-container">
+          <img src="assets/arch_pidnet.png" alt="PIDNet-S Architecture">
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: Model 2 - DDRNet-23-slim -->
+    <div class="slide" data-notes="Slide 6 details DDRNet-23-slim. It uses bilateral dual-resolution streams with continuous bidirectional feature exchange. The Deep Aggregation Pyramid Pooling Module (DAPPM) extracts large multi-scale context, helping the model see past local headlight glare blooms. With 106.4 FPS throughput and 44.60% distilled mIoU, it is the fastest 19-class network evaluated.">
+      <div class="slide-tag">Model Architecture 2 / 4</div>
+      <div class="slide-title">DDRNet-23-slim: Deep Dual-Resolution Bilateral Network</div>
+      <div class="divider"></div>
+
+      <div class="grid-2-wide-left">
         <div class="card" style="border-top: 4px solid var(--accent-amber)">
-          <div class="card-title" style="color:var(--accent-amber)">DDRNet-23-slim</div>
-          <div style="font-size:11px; color:var(--text-muted); font-weight:700; margin-bottom:12px">5.67M Params | 14.2 GFLOPs | 106.4 FPS</div>
+          <div class="card-title" style="color:var(--accent-amber)">DDRNet-23-slim ARCHITECTURE & NIGHTTIME RATIONALE</div>
           <ul>
-            <li><strong>Deep Dual-Resolution Bilateral:</strong> Continuous bidirectional information flow between high-res spatial and low-res contextual streams.</li>
-            <li><strong>DAPPM Module:</strong> Multi-scale pooling with deep aggregation extracts large receptive fields with minimal latency.</li>
-            <li><strong>Why Chosen:</strong> Maximum throughput efficiency among CNNs (&gt;100 FPS) with robust multi-scale context.</li>
+            <li><strong>Bilateral Dual-Resolution Streams:</strong> High-resolution stream retains fine spatial features ($H/8$) without heavy compression; low-resolution stream captures semantic richness ($H/32$).</li>
+            <li><strong>Continuous Bilateral Cross-Connections:</strong> Bidirectional information exchange allows deep semantics to refine spatial features while spatial localization guides low-res representations.</li>
+            <li><strong>Deep Aggregation PPM (DAPPM):</strong> 5 parallel pooling branches ($k=1, 2, 3, 6$) with hierarchical recursive fusion. Captures huge receptive field across dark scenes with minimal FLOPs.</li>
+            <li><strong>Hardware Profile & Nighttime Performance:</strong> <strong>5.67M Params</strong> | <strong>14.2 GFLOPs</strong> | <strong>9.4ms (106.4 FPS on T4 GPU)</strong>. Baseline: 43.51% mIoU &rarr; Distilled: <strong style="color:var(--accent-emerald)">44.60% mIoU</strong> (+1.09% gain). Fastest 19-class model!</li>
           </ul>
         </div>
 
+        <div class="chart-container">
+          <img src="assets/arch_ddrnet.png" alt="DDRNet-23-slim Architecture">
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 7: Model 3 - TwinLiteNet+ -->
+    <div class="slide" data-notes="Slide 7 introduces TwinLiteNet+, representing the ultra-lightweight end of the spectrum. Utilizing depthwise separable convolutions, hierarchical dilated ESPNet blocks, and CAAM channel attention, it operates at a blistering 238 FPS with only 0.47M parameters. It allowed us to test the lower capacity boundary of real-time edge networks on 19 nighttime classes.">
+      <div class="slide-tag">Model Architecture 3 / 4</div>
+      <div class="slide-title">TwinLiteNet+: Ultra-Lightweight Depthwise Architecture</div>
+      <div class="divider"></div>
+
+      <div class="grid-2-wide-left">
         <div class="card" style="border-top: 4px solid var(--accent-purple)">
-          <div class="card-title" style="color:var(--accent-purple)">TwinLiteNet+</div>
-          <div style="font-size:11px; color:var(--text-muted); font-weight:700; margin-bottom:12px">0.47M Params | 2.80 GFLOPs | 238.1 FPS</div>
+          <div class="card-title" style="color:var(--accent-purple)">TwinLiteNet+ ARCHITECTURE & NIGHTTIME RATIONALE</div>
           <ul>
-            <li><strong>Depthwise ESPNet Blocks:</strong> Dilated depthwise separable convolutions with Channel Attention (CAAM).</li>
-            <li><strong>Extreme Edge Profile:</strong> Blazing 238 FPS on GPU; tested down to 0.128M parameter variants.</li>
-            <li><strong>Why Chosen:</strong> Explores the absolute lower capacity boundary of real-time edge networks on 19 nighttime classes.</li>
+            <li><strong>Depthwise Separable Convolution Core:</strong> Factorizes spatial filtering and channel cross-talk into separate depthwise and pointwise convolutions, reducing FLOPs by 8–9&times;.</li>
+            <li><strong>ESPNet Hierarchical Pyramid Block:</strong> Employs parallel dilated depthwise convolutions with dilation rates $d \in \{1, 2, 4, 8\}$. Additive hierarchical connection eliminates gridding artifacts.</li>
+            <li><strong>Channel Attention Adaptive Module (CAAM):</strong> Lightweight Squeeze-and-Excitation gating recalibrates channel activations, dynamically boosting under-illuminated feature channels.</li>
+            <li><strong>Hardware Profile & Nighttime Performance:</strong> <strong>0.47M Params</strong> | <strong>2.80 GFLOPs</strong> | <strong>4.2ms (238.1 FPS on T4 GPU)</strong>. Baseline: 32.32% mIoU. Reveals the lower capacity limit of micro-models on 19 nighttime classes.</li>
           </ul>
+        </div>
+
+        <div class="chart-container">
+          <img src="assets/arch_twinlite.png" alt="TwinLiteNet+ Architecture">
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 8: Model 4 - SegFormer-B2 (Teacher) -->
+    <div class="slide" data-notes="Slide 8 presents our teacher model: SegFormer-B2. SegFormer uses a hierarchical Mix Transformer encoder with overlapped patch merging and efficient spatial-reduction attention. It eliminates fixed positional embeddings, making it robust to dark scene distortions. Fine-tuned to 49.54% mIoU on NightCity, it provides the rich contextual supervision needed to guide our compact students.">
+      <div class="slide-tag">Model Architecture 4 / 4 (Teacher)</div>
+      <div class="slide-title">SegFormer-B2: Hierarchical Vision Transformer Teacher</div>
+      <div class="divider"></div>
+
+      <div class="grid-2-wide-left">
+        <div class="card" style="border-top: 4px solid var(--accent-cyan)">
+          <div class="card-title" style="color:var(--accent-cyan)">SegFormer-B2 ARCHITECTURE & DISTILLATION ROLE</div>
+          <ul>
+            <li><strong>Hierarchical Mix Transformer (MiT-B2):</strong> 4 progressive stages generating multi-level features ($H/4, H/8, H/16, H/32$). Overlapped Patch Merging preserves local edge continuity.</li>
+            <li><strong>Efficient Self-Attention (Spatial Reduction):</strong> Reduces key/value sequence lengths by ratio $R$, enabling long-range multi-head attention across high-resolution nocturnal driving scenes.</li>
+            <li><strong>Mix-FFN (No Positional Embeddings):</strong> Injecting 3&times;3 depthwise convolutions into FFN blocks encodes position dynamically, avoiding interpolation errors across varying image sizes.</li>
+            <li><strong>All-MLP Lightweight Decoder & Distillation Role:</strong> <strong>24.2M Params</strong> | <strong>62.4 GFLOPs</strong>. Fine-tuned on NightCity to reach <strong style="color:var(--accent-cyan)">49.54% mIoU</strong>. Acts as the teacher generating soft dark probability maps for our real-time students!</li>
+          </ul>
+        </div>
+
+        <div class="chart-container">
+          <img src="assets/arch_segformer.png" alt="SegFormer-B2 Architecture">
         </div>
       </div>
     </div>
